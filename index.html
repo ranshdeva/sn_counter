@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sun Salutation Counter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap');
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #13131a;
+            --surface2: #1c1c28;
+            --border: rgba(255,255,255,0.07);
+            --accent: #a78bfa;
+            --accent2: #34d399;
+            --warn: #fbbf24;
+            --danger: #f87171;
+            --text: #e8e8f0;
+            --muted: #6b6b80;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'DM Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            padding: 12px 16px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-style: italic;
+            font-size: 1.5rem;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+
+        .header-sub {
+            color: var(--muted);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        #app {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* VIDEO */
+        .video-wrap {
+            position: relative;
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            height: 100%;
+        }
+
+        #video { display: none; }
+        #canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+        .status-overlay {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(10,10,15,0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .dot-setup    { background: var(--warn); }
+        .dot-active   { background: var(--accent2); }
+        .dot-verifying { background: var(--accent); }
+        .dot-unauth   { background: var(--danger); }
+        .dot-ai       { background: #60a5fa; animation: pulse-fast 0.8s infinite; }
+
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        .fps-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(10,10,15,0.7);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .hold-bar-wrap {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+        }
+
+        .hold-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .hold-bar-fill {
+            height: 100%;
+            background: var(--accent2);
+            border-radius: 4px;
+            transition: width 0.1s;
+        }
+
+        .hold-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 4px;
+            text-align: center;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        /* SIDEBAR */
+        .sidebar { display: flex; flex-direction: column; gap: 8px; height: 100%; overflow-y: auto; padding-right: 2px; }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            flex-shrink: 0;
+        }
+
+        .card-label {
+            font-size: 0.65rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .stat-big {
+            font-family: 'Instrument Serif', serif;
+            font-style: italic;
+            font-size: 2.4rem;
+            line-height: 1;
+            color: var(--text);
+        }
+
+        .stage-name {
+            font-family: 'Instrument Serif', serif;
+            font-style: italic;
+            font-size: 1.2rem;
+            line-height: 1.2;
+            color: var(--text);
+        }
+
+        .progress-track {
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .progress-pip {
+            width: 18px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--surface2);
+            transition: background 0.3s;
+        }
+
+        .progress-pip.done { background: var(--accent2); }
+        .progress-pip.current { background: var(--accent); }
+
+        /* BUTTONS */
+        .btn-row { display: flex; flex-direction: column; gap: 8px; }
+
+        button {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover { transform: translateY(-1px); filter: brightness(1.15); }
+        button:active { transform: translateY(0); }
+
+        .btn-primary   { background: var(--accent); color: #0a0a0f; border-color: var(--accent); font-weight: 500; }
+        .btn-secondary { background: transparent; color: var(--text); }
+        .btn-danger    { background: transparent; color: var(--danger); border-color: var(--danger); }
+
+        /* AI OUTFIT PANEL */
+        .ai-outfit-panel {
+            background: var(--surface2);
+            border: 1px solid rgba(167,139,250,0.25);
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+
+        .ai-outfit-label {
+            font-size: 0.68rem;
+            color: var(--accent);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .ai-outfit-text {
+            font-size: 0.78rem;
+            color: var(--text);
+            line-height: 1.5;
+            opacity: 0.85;
+        }
+
+        .ai-verify-result {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+        }
+
+        .verify-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .verify-match { background: rgba(52,211,153,0.15); color: var(--accent2); }
+        .verify-no-match { background: rgba(248,113,113,0.15); color: var(--danger); }
+        .verify-thinking { background: rgba(96,165,250,0.15); color: #60a5fa; }
+
+        /* DEBUG */
+        .debug-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            flex-shrink: 0;
+        }
+
+        .debug-content {
+            font-size: 0.68rem;
+            color: #4ade80;
+            font-family: 'DM Mono', monospace;
+            line-height: 1.5;
+            white-space: pre;
+            overflow: hidden;
+        }
+
+        /* LOADING */
+        #loading { display: block; }
+
+        .loading-title {
+            font-family: 'Instrument Serif', serif;
+            font-style: italic;
+            font-size: 1.8rem;
+            color: var(--text);
+        }
+
+        .loading-sub {
+            color: var(--muted);
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--surface2);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="app-header">
+        <h1>🧘 Sun Salutation</h1>
+        <span class="header-sub">AI-Powered Counter</span>
+    </div>
+
+    <div id="loading" style="position:absolute;top:14px;right:16px;z-index:100">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="app">
+        <div class="main-grid">
+
+            <!-- VIDEO -->
+            <div style="min-height:0;height:100%;display:flex;flex-direction:column">
+                <div class="video-wrap" style="flex:1">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                    <div id="statusOverlay" class="status-overlay">
+                        <div id="statusDot" class="status-dot dot-setup"></div>
+                        <span id="statusText">Setup mode</span>
+                    </div>
+                    <div class="fps-badge">FPS <span id="fps">0</span></div>
+                    <div class="hold-bar-wrap" id="holdWrap">
+                        <div class="hold-bar">
+                            <div class="hold-bar-fill" id="holdFill" style="width:0%"></div>
+                        </div>
+                        <div class="hold-label" id="holdLabel"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDEBAR -->
+            <div class="sidebar">
+
+                <div class="card" id="statsCard">
+                    <div class="card-label">Completed Rounds</div>
+                    <div class="stat-big" id="counterVal">0</div>
+                </div>
+
+                <div class="card" id="stageCard" class="hidden">
+                    <div class="card-label">Current Pose</div>
+                    <div class="stage-name" id="stageName">—</div>
+                    <div class="progress-track" id="progressPips"></div>
+                </div>
+
+                <!-- AI Outfit Card -->
+                <div class="card" id="outfitCard">
+                    <div class="card-label">AI Outfit Recognition</div>
+                    <div id="outfitContent">
+                        <div style="color:var(--muted); font-size:0.8rem;">No outfit captured yet.</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div id="btnRow" class="btn-row"></div>
+                </div>
+
+                <div class="debug-card">
+                    <div class="card-label">Pose Debug</div>
+                    <div class="debug-content" id="debugInfo">Waiting…</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STAGES = ["Mountain","Upward Salute","Forward Fold","Lunge Left","Plank",
+                "Low Plank","Cobra","Downward Dog","Lunge Right","Forward Fold",
+                "Upward Salute","Mountain"];
+const CONFIG = { holdFrames:8, historySize:5, poseLostThreshold:30 };
+
+// HSV verification config
+const HSV_CONFIG = {
+    hueBins: 36,          // 10° per bin
+    minSaturation: 0.12,  // ignore near-grey pixels (shadows, white shirts handled separately)
+    matchThreshold: 0.62, // histogram intersection threshold
+    brightThreshold: 0.88 // treat very bright pixels as highlights, downweight
+};
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let detector, video, canvas, ctx;
+let setupMode = false, sessionActive = false;
+let stageIndex = 0, counter = 0, holdCounter = 0;
+let landmarkHistory = [], framesWithoutPose = 0;
+let lastTime = Date.now(), fps = 0;
+let debugText = "";
+
+// HSV outfit state
+let authorizedOutfit = null;  // { hueHist, satMean, valMean, neutralRatio }
+let lastVerifyResult = null;  // { match, score, ts }
+let lastGoodVerify = null;     // last time torso was actually visible and matched
+const GRACE_PERIOD_MS = 5000;  // allow 5s of invisible torso before flagging
+let intruderDetected = false;
+const VERIFY_INTERVAL_MS = 1000;
+
+// ─── RGB → HSV ────────────────────────────────────────────────────────────────
+function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const d = max - min;
+    let h = 0, s = max === 0 ? 0 : d / max, v = max;
+    if (d !== 0) {
+        if      (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        else if (max === g) h = ((b - r) / d + 2) / 6;
+        else                h = ((r - g) / d + 4) / 6;
+    }
+    return { h, s, v };
+}
+
+// ─── Build Outfit Signature ───────────────────────────────────────────────────
+// Samples 3 horizontal bands across the torso for robustness
+function buildOutfitSignature(kp) {
+    const ls = kp[5], rs = kp[6], lh = kp[11], rh = kp[12];
+    if ([ls, rs, lh, rh].some(k => k.score < 0.3)) return null;
+
+    const pad = 20;
+    const x1 = Math.max(0, Math.min(ls.x, rs.x) + pad);
+    const x2 = Math.min(canvas.width,  Math.max(ls.x, rs.x) - pad);
+    const y1 = Math.max(0, Math.min(ls.y, rs.y));
+    const y2 = Math.min(canvas.height, Math.max(lh.y, rh.y));
+    const w = x2 - x1, h = y2 - y1;
+    if (w < 20 || h < 20) return null;
+
+    const imageData = ctx.getImageData(x1, y1, w, h).data;
+
+    const hueHist   = new Float32Array(HSV_CONFIG.hueBins).fill(0);
+    let satSum = 0, valSum = 0, neutralCount = 0, totalCount = 0;
+
+    for (let i = 0; i < imageData.length; i += 4) {
+        const { h, s, v } = rgbToHsv(imageData[i], imageData[i+1], imageData[i+2]);
+        totalCount++;
+        satSum += s;
+        valSum += v;
+
+        if (s < HSV_CONFIG.minSaturation) {
+            // Near-neutral pixel (grey, white, black)
+            neutralCount++;
+        } else if (v < HSV_CONFIG.brightThreshold) {
+            // Chromatic, non-blown-out pixel — add to hue histogram
+            const bin = Math.floor(h * HSV_CONFIG.hueBins) % HSV_CONFIG.hueBins;
+            hueHist[bin] += s; // weight by saturation so vivid colors count more
+        }
+    }
+
+    // Normalise hue histogram
+    const histSum = hueHist.reduce((a, b) => a + b, 0);
+    if (histSum > 0) hueHist.forEach((_, i) => hueHist[i] /= histSum);
+
+    return {
+        hueHist,
+        satMean:     satSum / totalCount,
+        valMean:     valSum / totalCount,
+        neutralRatio: neutralCount / totalCount,
+        w, h
+    };
+}
+
+// ─── Histogram Intersection ───────────────────────────────────────────────────
+// Returns 0–1 where 1 = identical distribution
+function histIntersection(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += Math.min(a[i], b[i]);
+    return sum;
+}
+
+// ─── Verify Outfit ────────────────────────────────────────────────────────────
+function verifyOutfitHSV(kp) {
+    if (!authorizedOutfit) return false;
+
+    const now = Date.now();
+    if (lastVerifyResult && (now - lastVerifyResult.ts) < VERIFY_INTERVAL_MS) {
+        return lastVerifyResult.match;
+    }
+
+    const current = buildOutfitSignature(kp);
+    if (!current) {
+        // Torso not visible — person is likely in a horizontal pose (plank, cobra, etc.)
+        // Grant a grace period using the last known good result instead of failing immediately
+        if (lastGoodVerify && (now - lastGoodVerify.ts) < GRACE_PERIOD_MS) {
+            lastVerifyResult = { match: true, score: lastGoodVerify.score, ts: now, reason: 'grace period' };
+            updateOutfitScore(lastGoodVerify.score, true, false);
+            return true;
+        }
+        // Grace period expired with no visible torso — flag it
+        lastVerifyResult = { match: false, score: 0, ts: now, reason: 'Torso not visible' };
+        return false;
+    }
+
+    // Hue histogram intersection (main signal)
+    const hueScore = histIntersection(authorizedOutfit.hueHist, current.hueHist);
+
+    // For neutral/dark outfits (gym blacks, whites) hue isn't reliable —
+    // fall back to saturation + value similarity
+    const isNeutralOutfit = authorizedOutfit.neutralRatio > 0.6;
+    let score;
+    if (isNeutralOutfit) {
+        const satDiff = Math.abs(authorizedOutfit.satMean - current.satMean);
+        const valDiff = Math.abs(authorizedOutfit.valMean - current.valMean);
+        score = 1 - (satDiff * 0.4 + valDiff * 0.4);
+    } else {
+        // Blend hue histogram with saturation similarity
+        const satSim = 1 - Math.min(1, Math.abs(authorizedOutfit.satMean - current.satMean) * 3);
+        score = hueScore * 0.80 + satSim * 0.20;
+    }
+
+    const match = score >= HSV_CONFIG.matchThreshold;
+    lastVerifyResult = { match, score, ts: now, reason: isNeutralOutfit ? 'neutral-mode' : 'hue-mode' };
+
+    // Record last time we got a real visible-torso result that matched
+    if (match) lastGoodVerify = { score, ts: now };
+
+    // Update outfit panel score display
+    updateOutfitScore(score, match, isNeutralOutfit);
+    return match;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+    try {
+        detector = await poseDetection.createDetector(
+            poseDetection.SupportedModels.MoveNet,
+            { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+        );
+        video  = document.getElementById('video');
+        canvas = document.getElementById('canvas');
+        ctx    = canvas.getContext('2d');
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width:1280, height:720, facingMode:'user' }
+        });
+        video.srcObject = stream;
+        await new Promise(r => { video.onloadedmetadata = () => {
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            r();
+        }});
+
+        const saved = localStorage.getItem('authorizedOutfitHSV');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // Restore Float32Array from plain array
+            parsed.hueHist = new Float32Array(parsed.hueHist);
+            authorizedOutfit = parsed;
+            setupMode = false;
+        } else {
+            setupMode = true;
+        }
+
+        document.getElementById('loading').classList.add('hidden');
+        updateUI();
+        detectPose();
+    } catch(err) {
+        document.getElementById('loading').innerHTML =
+            `<p style="color:#f87171">Error: ${err.message}</p>
+             <p style="color:#6b6b80;font-size:.85rem;margin-top:8px">Please allow camera access and refresh.</p>`;
+    }
+}
+
+// ─── Pose Loop ────────────────────────────────────────────────────────────────
+async function detectPose() {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const poses = await detector.estimatePoses(canvas);
+
+    if (poses.length > 0) {
+        framesWithoutPose = 0;
+        const pose = poses[0];
+        landmarkHistory.push(pose.keypoints);
+        if (landmarkHistory.length > CONFIG.historySize) landmarkHistory.shift();
+        const smoothed = smoothLandmarks(landmarkHistory);
+        drawSkeleton(smoothed);
+
+        if (!sessionActive && !setupMode) verifySession(smoothed);
+        if (sessionActive) checkStage(smoothed);
+    } else {
+        framesWithoutPose++;
+        if (framesWithoutPose > CONFIG.poseLostThreshold && sessionActive) endSession();
+    }
+
+    const now = Date.now();
+    fps = Math.round(1000 / (now - lastTime));
+    lastTime = now;
+    document.getElementById('fps').textContent = fps;
+    document.getElementById('debugInfo').textContent = debugText;
+
+    requestAnimationFrame(detectPose);
+}
+
+// ─── Helpers: Pose Math ───────────────────────────────────────────────────────
+function smoothLandmarks(history) {
+    return Array.from({length:17}, (_,i) => {
+        let x=0, y=0, score=0;
+        history.forEach(f => { x += f[i].x; y += f[i].y; score += (f[i].score||0); });
+        return { x:x/history.length, y:y/history.length, score:score/history.length };
+    });
+}
+
+function calculateAngle(a, b, c) {
+    const rad = Math.atan2(c.y-b.y, c.x-b.x) - Math.atan2(a.y-b.y, a.x-b.x);
+    let angle = Math.abs(rad * 180 / Math.PI);
+    if (angle > 180) angle = 360 - angle;
+    return angle;
+}
+
+function chooseSide(kp) {
+    const lv = (kp[5].score||0)+(kp[11].score||0)+(kp[13].score||0);
+    const rv = (kp[6].score||0)+(kp[12].score||0)+(kp[14].score||0);
+    return lv > rv ? 'left' : 'right';
+}
+
+// ─── Draw ─────────────────────────────────────────────────────────────────────
+function drawSkeleton(kp) {
+    const edges = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],
+                   [11,13],[13,15],[12,14],[14,16]];
+    ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2.5;
+    edges.forEach(([s,e]) => {
+        if (kp[s].score > 0.3 && kp[e].score > 0.3) {
+            ctx.beginPath();
+            ctx.moveTo(kp[s].x, kp[s].y);
+            ctx.lineTo(kp[e].x, kp[e].y);
+            ctx.stroke();
+        }
+    });
+    kp.forEach(k => {
+        if (k.score > 0.3) {
+            ctx.fillStyle = '#34d399';
+            ctx.beginPath();
+            ctx.arc(k.x, k.y, 5, 0, 2*Math.PI);
+            ctx.fill();
+        }
+    });
+}
+
+// ─── Capture Outfit ───────────────────────────────────────────────────────────
+async function captureOutfit() {
+    const poses = await detector.estimatePoses(canvas);
+    if (!poses.length) { alert('No person detected. Stand in front of the camera.'); return; }
+
+    const sig = buildOutfitSignature(poses[0].keypoints);
+    if (!sig) { alert('Could not read torso region. Make sure your full body is visible.'); return; }
+
+    authorizedOutfit = sig;
+    // Store hueHist as plain array for JSON serialisation
+    const toStore = { ...sig, hueHist: Array.from(sig.hueHist) };
+    localStorage.setItem('authorizedOutfitHSV', JSON.stringify(toStore));
+    setupMode = false;
+    lastVerifyResult = null;
+    updateUI();
+    updateOutfitPanel(sig);
+}
+
+// ─── Session Verification ─────────────────────────────────────────────────────
+function verifySession(kp) {
+    const side = chooseSide(kp);
+    const si = side === 'left'
+        ? { shoulder:5, hip:11, wrist:9, ankle:15 }
+        : { shoulder:6, hip:12, wrist:10, ankle:16 };
+    const sh = kp[si.shoulder], hp = kp[si.hip], wr = kp[si.wrist], an = kp[si.ankle];
+    const mountainOk = detectMountain(sh, hp, wr, an);
+
+    debugText = mountainOk ? 'Mountain ✓ — verifying outfit…' : 'Waiting for Mountain pose…';
+
+    if (!mountainOk) { setStatus('Stand in Mountain pose to begin', 'verifying'); return; }
+
+    const match = verifyOutfitHSV(kp);
+    if (match) {
+        sessionActive = true;
+        setStatus('Session Active', 'active');
+        updateUI();
+    } else {
+        const score = lastVerifyResult?.score ?? 0;
+        setStatus(`Outfit mismatch (${(score*100).toFixed(0)}% match)`, 'unauth');
+    }
+}
+
+// ─── Pose Detectors ───────────────────────────────────────────────────────────
+function detectMountain(sh, hp, wr, an) {
+    if (!sh||!hp||!wr||!an) return false;
+    if ([sh,hp,wr,an].some(k=>k.score<0.3)) return false;
+    return Math.abs(sh.y-hp.y)<180 && wr.y>sh.y-30 && an.y>hp.y-30;
+}
+function detectUpwardSalute(sh, wr) {
+    if (!sh||!wr||sh.score<0.3||wr.score<0.3) return false;
+    return wr.y < sh.y-25;
+}
+function detectForwardFold(sh, hp, wr, kn) {
+    if (!sh||!hp||!wr||!kn||[sh,hp,wr,kn].some(k=>k.score<0.3)) return false;
+    return sh.y>hp.y-50 && wr.y>kn.y-70;
+}
+function detectLunge(knAngle, hp, kn, an, sh) {
+    if (!hp||!kn||!an||!sh||[hp,kn,an,sh].some(k=>k.score<0.3)) return false;
+    return Math.abs(sh.y-hp.y)<120 && knAngle>100 && Math.abs(kn.y-an.y)<60;
+}
+function detectPlank(sh, hp, kn, an, ok, oa, ka, oka) {
+    if (!sh||!hp||!kn||!an||!ok||!oa||[sh,hp,kn,an,ok,oa].some(k=>k.score<0.3)) return false;
+    return Math.abs(sh.y-hp.y)<100 && Math.abs(hp.y-kn.y)<100 &&
+           an.y>kn.y-20 && oa.y>ok.y-20 && ka>140 && oka>140;
+}
+function detectLowPlank(sh, hp, wr) {
+    if (!sh||!hp||!wr) return false;
+    return sh.y<wr.y+40 && Math.abs(sh.y-hp.y)<60;
+}
+function detectCobra(sh, hp, kn, wr) {
+    if (!sh||!hp||!kn||!wr||[sh,hp,kn,wr].some(k=>k.score<0.3)) return false;
+    return sh.y<hp.y-40 && hp.y>kn.y-100 && wr.y>sh.y-20;
+}
+function detectDownwardDog(sh, hp, kn, an, wr) {
+    if (!sh||!hp||!kn||!an||!wr||[sh,hp,kn,an,wr].some(k=>k.score<0.3)) return false;
+    return hp.y<sh.y-20 && wr.y>hp.y && an.y>hp.y;
+}
+
+// ─── Intruder Alert ──────────────────────────────────────────────────────────────
+function triggerIntruderAlert() {
+    if (intruderDetected) return; // already showing alert
+    intruderDetected = true;
+    sessionActive = false;
+    holdCounter = 0;
+
+    setStatus('⚠ Person mismatch detected — session paused', 'unauth');
+
+    // Overlay warning on canvas
+    ctx.fillStyle = 'rgba(239,68,68,0.55)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${Math.round(canvas.width * 0.045)}px DM Mono, monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠ ORIGINAL PERSON NOT DETECTED', canvas.width / 2, canvas.height / 2 - 30);
+    ctx.font = `${Math.round(canvas.width * 0.025)}px DM Mono, monospace`;
+    ctx.fillText('Session stopped. Please re-verify to continue.', canvas.width / 2, canvas.height / 2 + 20);
+    ctx.textAlign = 'left';
+
+    // Update sidebar
+    const btns = document.getElementById('btnRow');
+    btns.innerHTML = `
+        <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:10px;padding:14px;margin-bottom:8px;font-size:.8rem;line-height:1.6;color:#f87171">
+            ⚠ The person in frame does not match the registered person.<br>
+            Session has been stopped to prevent unauthorised counting.
+        </div>
+        <button class="btn-primary" onclick="resumeAfterAlert()">↺ Re-verify & Resume</button>
+        <button class="btn-danger" onclick="deleteOutfit()">✕ Reset & Recapture Outfit</button>`;
+
+    const score = lastVerifyResult?.score ?? 0;
+    updateOutfitScore(score, false, lastVerifyResult?.neutralMode ?? false);
+}
+
+function resumeAfterAlert() {
+    intruderDetected = false;
+    sessionActive = false;
+    stageIndex = 0;
+    holdCounter = 0;
+    lastVerifyResult = null;
+    lastGoodVerify = null;
+    updateUI();
+    setStatus('Stand in Mountain pose to re-verify', 'verifying');
+}
+
+// ─── Stage Check ──────────────────────────────────────────────────────────────
+function checkStage(kp) {
+    // Continuous outfit verification every second
+    const nowCheck = Date.now();
+    if (!lastVerifyResult || (nowCheck - lastVerifyResult.ts) >= VERIFY_INTERVAL_MS) {
+        const match = verifyOutfitHSV(kp);
+        if (!match) {
+            triggerIntruderAlert();
+            return;
+        }
+    }
+
+    const side = chooseSide(kp);
+    const I = side==='left'
+        ? {sh:5,el:7,hp:11,kn:13,an:15,wr:9,oh:12,ok:14,oa:16}
+        : {sh:6,el:8,hp:12,kn:14,an:16,wr:10,oh:11,ok:13,oa:15};
+
+    const sh=kp[I.sh], el=kp[I.el], hp=kp[I.hp], kn=kp[I.kn],
+          an=kp[I.an], wr=kp[I.wr], oh=kp[I.oh], ok=kp[I.ok], oa=kp[I.oa];
+    const ka  = calculateAngle(hp, kn, an);
+    const oka = calculateAngle(oh, ok, oa);
+    const stage = STAGES[stageIndex];
+    let hit = false;
+
+    debugText = `Stage: ${stage} (${stageIndex+1}/${STAGES.length})\nHold: ${holdCounter}/${CONFIG.holdFrames}\n`;
+
+    switch (stage) {
+        case "Mountain":       hit = detectMountain(sh,hp,wr,an); break;
+        case "Upward Salute":  hit = detectUpwardSalute(sh,wr); break;
+        case "Forward Fold":   hit = detectForwardFold(sh,hp,wr,kn); break;
+        case "Lunge Left":
+        case "Lunge Right":    hit = detectLunge(ka,hp,kn,an,sh); break;
+        case "Plank":          hit = detectPlank(sh,hp,kn,an,ok,oa,ka,oka); break;
+        case "Low Plank":      hit = detectLowPlank(sh,hp,wr); break;
+        case "Cobra":          hit = detectCobra(sh,hp,kn,wr); break;
+        case "Downward Dog":   hit = detectDownwardDog(sh,hp,kn,an,wr); break;
+    }
+
+    debugText += `Detected: ${hit}\nSide: ${side}`;
+
+    const pct = (holdCounter / CONFIG.holdFrames) * 100;
+    document.getElementById('holdFill').style.width = pct + '%';
+    document.getElementById('holdLabel').textContent =
+        hit ? `Hold ${holdCounter}/${CONFIG.holdFrames}` : '';
+
+    if (hit) {
+        holdCounter++;
+        if (holdCounter >= CONFIG.holdFrames) {
+            stageIndex++;
+            if (stageIndex >= STAGES.length) { counter++; stageIndex = 0; }
+            holdCounter = 0;
+            updateUI();
+        }
+    } else {
+        holdCounter = Math.max(0, holdCounter - 1);
+    }
+}
+
+// ─── UI Updates ───────────────────────────────────────────────────────────────
+function setStatus(text, type) {
+    document.getElementById('statusText').textContent = text;
+    document.getElementById('statusDot').className = 'status-dot dot-' + type;
+}
+
+function updateOutfitPanel(sig) {
+    if (!sig) { document.getElementById('outfitContent').innerHTML =
+        `<div style="color:var(--muted);font-size:.8rem">No outfit captured yet.</div>`; return; }
+
+    const neutralPct  = (sig.neutralRatio * 100).toFixed(0);
+    const mode = sig.neutralRatio > 0.6 ? 'neutral (dark/white)' : 'chromatic (colour)';
+    document.getElementById('outfitContent').innerHTML = `
+        <div class="ai-outfit-panel">
+            <div class="ai-outfit-label">✦ HSV Signature</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+                <div>
+                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">MODE</div>
+                    <div style="font-size:.75rem;color:var(--text)">${mode}</div>
+                </div>
+                <div>
+                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">NEUTRAL %</div>
+                    <div style="font-size:.75rem;color:var(--text)">${neutralPct}%</div>
+                </div>
+                <div>
+                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">AVG SAT</div>
+                    <div style="font-size:.75rem;color:var(--text)">${(sig.satMean*100).toFixed(0)}%</div>
+                </div>
+                <div>
+                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">AVG VAL</div>
+                    <div style="font-size:.75rem;color:var(--text)">${(sig.valMean*100).toFixed(0)}%</div>
+                </div>
+            </div>
+            <div style="font-size:.65rem;color:var(--muted);margin-bottom:5px">HUE DISTRIBUTION</div>
+            ${renderHueBar(sig.hueHist)}
+            <div class="ai-verify-result" id="verifyResult">
+                <span class="verify-badge verify-thinking">—</span>
+                <span style="color:var(--muted);font-size:.73rem">Not yet checked</span>
+            </div>
+        </div>`;
+}
+
+function renderHueBar(hist) {
+    // Render a small hue histogram as coloured bars
+    const bars = Array.from(hist).map((v, i) => {
+        const hue = Math.round((i / hist.length) * 360);
+        const h = Math.round(v * 100 * 8); // scale for visibility
+        return `<div style="flex:1;height:${Math.max(2,h)}px;background:hsl(${hue},80%,55%);border-radius:2px 2px 0 0;align-self:flex-end"></div>`;
+    }).join('');
+    return `<div style="display:flex;gap:1px;height:32px;align-items:flex-end;background:var(--surface2);padding:4px;border-radius:6px">${bars}</div>`;
+}
+
+function updateOutfitScore(score, match, neutralMode) {
+    const el = document.getElementById('verifyResult');
+    if (!el) return;
+    const pct = (score * 100).toFixed(0);
+    const cls  = match ? 'verify-match' : 'verify-no-match';
+    const icon = match ? `✓ Match` : `✗ No match`;
+    el.innerHTML = `<span class="verify-badge ${cls}">${icon}</span>
+        <span style="color:var(--muted);font-size:.73rem">${pct}% — ${neutralMode?'neutral':'hue'} mode</span>`;
+}
+
+function updateUI() {
+    const btns = document.getElementById('btnRow');
+    btns.innerHTML = '';
+
+    if (setupMode) {
+        setStatus('Setup — capture your outfit', 'setup');
+        btns.innerHTML = `<button class="btn-primary" onclick="captureOutfit()">📷 Capture Outfit</button>`;
+        updateOutfitPanel(null);
+    } else if (sessionActive) {
+        setStatus('Session Active', 'active');
+        btns.innerHTML = `
+            <button class="btn-secondary" onclick="resetSession()">↺ Reset Stage</button>
+            <button class="btn-secondary" onclick="endSession()">⏹ End Session</button>
+            <button class="btn-danger"    onclick="deleteOutfit()">✕ Delete Outfit</button>`;
+        document.getElementById('counterVal').textContent = counter;
+        document.getElementById('stageName').textContent = STAGES[stageIndex];
+        const pips = document.getElementById('progressPips');
+        pips.innerHTML = STAGES.map((_,i) =>
+            `<div class="progress-pip ${i < stageIndex ? 'done' : i === stageIndex ? 'current' : ''}"></div>`
+        ).join('');
+        if (authorizedOutfit && !document.getElementById('verifyResult')) {
+            updateOutfitPanel(authorizedOutfit);
+        }
+    } else {
+        setStatus('Stand in Mountain pose', 'verifying');
+        btns.innerHTML = `<button class="btn-danger" onclick="deleteOutfit()">✕ Delete Outfit</button>`;
+        if (authorizedOutfit) updateOutfitPanel(authorizedOutfit);
+    }
+}
+
+function resetSession()  { stageIndex = 0; holdCounter = 0; updateUI(); }
+function endSession()    { sessionActive = false; resetSession(); }
+function deleteOutfit()  {
+    localStorage.removeItem('authorizedOutfitHSV');
+    authorizedOutfit = null;
+    setupMode = true;
+    sessionActive = false;
+    lastVerifyResult = null;
+    lastGoodVerify = null;
+    updateUI();
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
