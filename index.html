@@ -452,11 +452,10 @@ let debugText = "";
 
 // HSV outfit state
 let authorizedOutfit = null;  // { hueHist, satMean, valMean, neutralRatio }
-let lastVerifyResult = null;  // { match, score, ts }
-let lastGoodVerify = null;     // last time torso was actually visible and matched
-const GRACE_PERIOD_MS = 5000;  // allow 5s of invisible torso before flagging
+let lastVerifyResult = null;
+let personInFrame = false;     // was someone detected last frame?
+let needsReEntryCheck = false; // flag: someone left and came back
 let intruderDetected = false;
-const VERIFY_INTERVAL_MS = 1000;
 
 // ─── RGB → HSV ────────────────────────────────────────────────────────────────
 function rgbToHsv(r, g, b) {
@@ -532,30 +531,10 @@ function histIntersection(a, b) {
 function verifyOutfitHSV(kp) {
     if (!authorizedOutfit) return false;
 
-    const now = Date.now();
-    if (lastVerifyResult && (now - lastVerifyResult.ts) < VERIFY_INTERVAL_MS) {
-        return lastVerifyResult.match;
-    }
-
     const current = buildOutfitSignature(kp);
-    if (!current) {
-        // Torso not visible — person is likely in a horizontal pose (plank, cobra, etc.)
-        // Grant a grace period using the last known good result instead of failing immediately
-        if (lastGoodVerify && (now - lastGoodVerify.ts) < GRACE_PERIOD_MS) {
-            lastVerifyResult = { match: true, score: lastGoodVerify.score, ts: now, reason: 'grace period' };
-            updateOutfitScore(lastGoodVerify.score, true, false);
-            return true;
-        }
-        // Grace period expired with no visible torso — flag it
-        lastVerifyResult = { match: false, score: 0, ts: now, reason: 'Torso not visible' };
-        return false;
-    }
+    if (!current) return true; // torso not visible (horizontal pose) — pass through
 
-    // Hue histogram intersection (main signal)
     const hueScore = histIntersection(authorizedOutfit.hueHist, current.hueHist);
-
-    // For neutral/dark outfits (gym blacks, whites) hue isn't reliable —
-    // fall back to saturation + value similarity
     const isNeutralOutfit = authorizedOutfit.neutralRatio > 0.6;
     let score;
     if (isNeutralOutfit) {
@@ -563,18 +542,12 @@ function verifyOutfitHSV(kp) {
         const valDiff = Math.abs(authorizedOutfit.valMean - current.valMean);
         score = 1 - (satDiff * 0.4 + valDiff * 0.4);
     } else {
-        // Blend hue histogram with saturation similarity
         const satSim = 1 - Math.min(1, Math.abs(authorizedOutfit.satMean - current.satMean) * 3);
         score = hueScore * 0.80 + satSim * 0.20;
     }
 
     const match = score >= HSV_CONFIG.matchThreshold;
-    lastVerifyResult = { match, score, ts: now, reason: isNeutralOutfit ? 'neutral-mode' : 'hue-mode' };
-
-    // Record last time we got a real visible-torso result that matched
-    if (match) lastGoodVerify = { score, ts: now };
-
-    // Update outfit panel score display
+    lastVerifyResult = { match, score, reason: isNeutralOutfit ? 'neutral-mode' : 'hue-mode' };
     updateOutfitScore(score, match, isNeutralOutfit);
     return match;
 }
@@ -627,7 +600,11 @@ async function detectPose() {
     const poses = await detector.estimatePoses(canvas);
 
     if (poses.length > 0) {
+        // Person just re-entered the frame
+        if (!personInFrame && sessionActive) needsReEntryCheck = true;
+        personInFrame = true;
         framesWithoutPose = 0;
+
         const pose = poses[0];
         landmarkHistory.push(pose.keypoints);
         if (landmarkHistory.length > CONFIG.historySize) landmarkHistory.shift();
@@ -637,6 +614,7 @@ async function detectPose() {
         if (!sessionActive && !setupMode) verifySession(smoothed);
         if (sessionActive) checkStage(smoothed);
     } else {
+        personInFrame = false;
         framesWithoutPose++;
         if (framesWithoutPose > CONFIG.poseLostThreshold && sessionActive) endSession();
     }
@@ -697,14 +675,45 @@ function drawSkeleton(kp) {
 
 // ─── Capture Outfit ───────────────────────────────────────────────────────────
 async function captureOutfit() {
+    const btn = document.querySelector('.btn-primary');
+    if (btn) btn.disabled = true;
+
+    // 5-second countdown overlay on canvas
+    for (let i = 5; i >= 1; i--) {
+        // Draw countdown number centred on canvas
+        const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        ctx.putImageData(snapshot, 0, 0);
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${Math.round(canvas.width * 0.2)}px DM Mono, monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i, canvas.width / 2, canvas.height / 2);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        // Also update the button text
+        if (btn) btn.textContent = `📷 Capturing in ${i}…`;
+        await new Promise(r => setTimeout(r, 1000));
+    }
+
+    if (btn) btn.textContent = '📷 Capturing…';
+
     const poses = await detector.estimatePoses(canvas);
-    if (!poses.length) { alert('No person detected. Stand in front of the camera.'); return; }
+    if (!poses.length) {
+        if (btn) { btn.disabled = false; btn.textContent = '📷 Capture Outfit'; }
+        alert('No person detected. Stand in front of the camera.');
+        return;
+    }
 
     const sig = buildOutfitSignature(poses[0].keypoints);
-    if (!sig) { alert('Could not read torso region. Make sure your full body is visible.'); return; }
+    if (!sig) {
+        if (btn) { btn.disabled = false; btn.textContent = '📷 Capture Outfit'; }
+        alert('Could not read torso region. Make sure your full body is visible.');
+        return;
+    }
 
     authorizedOutfit = sig;
-    // Store hueHist as plain array for JSON serialisation
     const toStore = { ...sig, hueHist: Array.from(sig.hueHist) };
     localStorage.setItem('authorizedOutfitHSV', JSON.stringify(toStore));
     setupMode = false;
@@ -813,16 +822,16 @@ function resumeAfterAlert() {
     stageIndex = 0;
     holdCounter = 0;
     lastVerifyResult = null;
-    lastGoodVerify = null;
+    needsReEntryCheck = false;
     updateUI();
     setStatus('Stand in Mountain pose to re-verify', 'verifying');
 }
 
 // ─── Stage Check ──────────────────────────────────────────────────────────────
 function checkStage(kp) {
-    // Continuous outfit verification every second
-    const nowCheck = Date.now();
-    if (!lastVerifyResult || (nowCheck - lastVerifyResult.ts) >= VERIFY_INTERVAL_MS) {
+    // Only verify outfit when someone re-enters the frame
+    if (needsReEntryCheck) {
+        needsReEntryCheck = false;
         const match = verifyOutfitHSV(kp);
         if (!match) {
             triggerIntruderAlert();
@@ -976,7 +985,7 @@ function deleteOutfit()  {
     setupMode = true;
     sessionActive = false;
     lastVerifyResult = null;
-    lastGoodVerify = null;
+    needsReEntryCheck = false;
     updateUI();
 }
 
