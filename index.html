@@ -10,19 +10,29 @@
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap');
 
         :root {
-            --bg: #0a0a0f;
-            --surface: #13131a;
-            --surface2: #1c1c28;
-            --border: rgba(255,255,255,0.07);
+            --bg: #050508;
+            --surface: rgba(19, 19, 26, 0.6);
+            --surface-solid: #13131a;
+            --surface2: rgba(28, 28, 40, 0.8);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(167, 139, 250, 0.3);
             --accent: #a78bfa;
+            --accent-glow: rgba(167, 139, 250, 0.4);
             --accent2: #34d399;
+            --accent2-glow: rgba(52, 211, 153, 0.4);
             --warn: #fbbf24;
             --danger: #f87171;
-            --text: #e8e8f0;
-            --muted: #6b6b80;
+            --text: #ffffff;
+            --text-dim: #e8e8f0;
+            --muted: #8b8b9e;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-highlight); }
 
         html, body {
             height: 100vh;
@@ -32,37 +42,53 @@
         body {
             font-family: 'DM Mono', monospace;
             background: var(--bg);
-            color: var(--text);
+            background-image: radial-gradient(circle at 15% 50%, rgba(167, 139, 250, 0.05) 0%, transparent 50%),
+                              radial-gradient(circle at 85% 30%, rgba(52, 211, 153, 0.03) 0%, transparent 50%);
+            color: var(--text-dim);
             display: flex;
             flex-direction: column;
-            padding: 12px 16px;
+            padding: 16px 24px;
         }
 
         .app-header {
             display: flex;
             align-items: baseline;
-            gap: 12px;
-            margin-bottom: 10px;
+            justify-content: space-between;
+            margin-bottom: 16px;
             flex-shrink: 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
         }
 
         h1 {
             font-family: 'Instrument Serif', serif;
             font-style: italic;
-            font-size: 1.5rem;
+            font-size: 2rem;
             color: var(--text);
             letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
 
         .header-sub {
-            color: var(--muted);
-            font-size: 0.72rem;
-            letter-spacing: 0.08em;
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
+            background: rgba(167, 139, 250, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(167, 139, 250, 0.2);
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             width: 100%;
             flex: 1;
@@ -80,174 +106,197 @@
 
         .main-grid {
             display: grid;
-            grid-template-columns: 3fr 1fr;
-            gap: 12px;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
             flex: 1;
             min-height: 0;
         }
 
-        /* VIDEO */
         .video-wrap {
             position: relative;
-            background: var(--surface);
-            border-radius: 12px;
+            background: var(--surface-solid);
+            border-radius: 16px;
             overflow: hidden;
             border: 1px solid var(--border);
             height: 100%;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
         }
 
         #video { display: none; }
-        #canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+        #canvas { display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 
         .status-overlay {
             position: absolute;
-            top: 16px;
-            left: 16px;
-            right: 16px;
+            top: 20px;
+            left: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
-            background: rgba(10,10,15,0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-            padding: 10px 16px;
-            border-radius: 10px;
+            background: rgba(10, 10, 15, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 18px;
+            border-radius: 12px;
             font-size: 0.82rem;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
+            color: var(--text);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             flex-shrink: 0;
             animation: pulse 2s infinite;
+            box-shadow: 0 0 8px currentColor;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
-        .dot-setup    { background: var(--warn); }
-        .dot-active   { background: var(--accent2); }
-        .dot-verifying { background: var(--accent); }
-        .dot-unauth   { background: var(--danger); }
-        .dot-ai       { background: #60a5fa; animation: pulse-fast 0.8s infinite; }
-
-        @keyframes pulse-fast {
             0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.3); }
+            50% { opacity: 0.5; transform: scale(0.8); }
         }
+
+        .dot-setup     { background: var(--warn); color: var(--warn); }
+        .dot-active    { background: var(--accent2); color: var(--accent2); }
+        .dot-verifying { background: var(--accent); color: var(--accent); }
+        .dot-unauth    { background: var(--danger); color: var(--danger); }
 
         .fps-badge {
             position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(10,10,15,0.7);
-            border: 1px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 8px;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 10, 15, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 14px;
+            border-radius: 10px;
             font-size: 0.75rem;
             color: var(--muted);
+            letter-spacing: 0.05em;
         }
+
+        #fps { color: var(--text); font-weight: 500; }
 
         .hold-bar-wrap {
             position: absolute;
-            bottom: 16px;
-            left: 16px;
-            right: 16px;
+            bottom: 24px;
+            left: 24px;
+            right: 24px;
+            background: rgba(10, 10, 15, 0.6);
+            backdrop-filter: blur(12px);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            opacity: 0.9;
         }
 
         .hold-bar {
-            height: 4px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 6px;
             overflow: hidden;
         }
 
         .hold-bar-fill {
             height: 100%;
-            background: var(--accent2);
-            border-radius: 4px;
-            transition: width 0.1s;
+            background: linear-gradient(90deg, var(--accent2), #6ee7b7);
+            border-radius: 6px;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px var(--accent2-glow);
         }
 
         .hold-label {
-            font-size: 0.72rem;
-            color: var(--muted);
-            margin-top: 4px;
+            font-size: 0.75rem;
+            color: var(--text);
+            margin-top: 8px;
             text-align: center;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
+            font-weight: 500;
         }
 
-        /* SIDEBAR */
-        .sidebar { display: flex; flex-direction: column; gap: 8px; height: 100%; overflow-y: auto; padding-right: 2px; }
+        .sidebar { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 16px; 
+            height: 100%; 
+            overflow-y: auto; 
+            padding-right: 8px; 
+        }
 
         .card {
             background: var(--surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px 14px;
+            border-radius: 16px;
+            padding: 20px;
             flex-shrink: 0;
+            transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
         .card-label {
-            font-size: 0.65rem;
+            font-size: 0.68rem;
             color: var(--muted);
-            letter-spacing: 0.1em;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            margin-bottom: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .stat-big {
             font-family: 'Instrument Serif', serif;
             font-style: italic;
-            font-size: 2.4rem;
+            font-size: 3.5rem;
             line-height: 1;
             color: var(--text);
+            text-shadow: 0 4px 20px rgba(167, 139, 250, 0.2);
         }
 
         .stage-name {
             font-family: 'Instrument Serif', serif;
             font-style: italic;
-            font-size: 1.2rem;
+            font-size: 1.6rem;
             line-height: 1.2;
             color: var(--text);
         }
 
         .progress-track {
             display: flex;
-            gap: 4px;
-            margin-top: 12px;
+            gap: 6px;
+            margin-top: 16px;
             flex-wrap: wrap;
         }
 
         .progress-pip {
-            width: 18px;
-            height: 4px;
-            border-radius: 2px;
-            background: var(--surface2);
-            transition: background 0.3s;
+            flex: 1;
+            min-width: 12px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
         }
 
-        .progress-pip.done { background: var(--accent2); }
-        .progress-pip.current { background: var(--accent); }
+        .progress-pip.done { background: var(--accent2); box-shadow: 0 0 8px var(--accent2-glow); }
+        .progress-pip.current { background: var(--accent); transform: scaleY(1.5); box-shadow: 0 0 10px var(--accent-glow); }
 
-        /* BUTTONS */
-        .btn-row { display: flex; flex-direction: column; gap: 8px; }
+        .btn-row { display: flex; flex-direction: column; gap: 10px; }
 
         button {
-            padding: 8px 14px;
+            padding: 12px 16px;
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
             font-family: 'DM Mono', monospace;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             text-transform: uppercase;
             width: 100%;
             display: flex;
@@ -256,123 +305,74 @@
             gap: 8px;
         }
 
-        button:hover { transform: translateY(-1px); filter: brightness(1.15); }
-        button:active { transform: translateY(0); }
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--accent), #c4b5fd); 
+            color: #0a0a0f; 
+            border: none;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        .btn-secondary { background: rgba(255,255,255,0.03); color: var(--text-dim); }
+        .btn-danger { background: rgba(248, 113, 113, 0.05); color: var(--danger); border-color: rgba(248, 113, 113, 0.3); }
 
-        .btn-primary   { background: var(--accent); color: #0a0a0f; border-color: var(--accent); font-weight: 500; }
-        .btn-secondary { background: transparent; color: var(--text); }
-        .btn-danger    { background: transparent; color: var(--danger); border-color: var(--danger); }
-
-        /* AI OUTFIT PANEL */
         .ai-outfit-panel {
-            background: var(--surface2);
-            border: 1px solid rgba(167,139,250,0.25);
-            border-radius: 10px;
-            padding: 14px;
-            margin-top: 8px;
-        }
-
-        .ai-outfit-label {
-            font-size: 0.68rem;
-            color: var(--accent);
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
-        .ai-outfit-text {
-            font-size: 0.78rem;
-            color: var(--text);
-            line-height: 1.5;
-            opacity: 0.85;
-        }
-
-        .ai-verify-result {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid var(--border);
-            font-size: 0.75rem;
+            background: rgba(167, 139, 250, 0.05);
+            border: 1px solid var(--border-highlight);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
         }
 
         .verify-badge {
-            padding: 3px 8px;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
             font-size: 0.68rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-
-        .verify-match { background: rgba(52,211,153,0.15); color: var(--accent2); }
-        .verify-no-match { background: rgba(248,113,113,0.15); color: var(--danger); }
-        .verify-thinking { background: rgba(96,165,250,0.15); color: #60a5fa; }
-
-        /* DEBUG */
-        .debug-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 14px;
-            flex-shrink: 0;
-        }
-
-        .debug-content {
-            font-size: 0.68rem;
-            color: #4ade80;
-            font-family: 'DM Mono', monospace;
-            line-height: 1.5;
-            white-space: pre;
-            overflow: hidden;
-        }
-
-        /* LOADING */
-        #loading { display: block; }
-
-        .loading-title {
-            font-family: 'Instrument Serif', serif;
-            font-style: italic;
-            font-size: 1.8rem;
-            color: var(--text);
-        }
-
-        .loading-sub {
-            color: var(--muted);
-            font-size: 0.8rem;
+            font-weight: 500;
             letter-spacing: 0.08em;
             text-transform: uppercase;
         }
 
+        .verify-match { background: rgba(52,211,153,0.15); color: var(--accent2); border: 1px solid rgba(52,211,153,0.3); }
+        .verify-no-match { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.3); }
+
+        #loading { 
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 100;
+            background: var(--surface);
+            padding: 10px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+        }
+
         .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--surface2);
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(167, 139, 250, 0.2);
             border-top: 2px solid var(--accent);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .hidden { display: none; }
-</style>
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
 <div class="container">
     <div class="app-header">
-        <h1>🧘 Sun Salutation</h1>
-        <span class="header-sub">AI-Powered Counter</span>
+        <div class="header-title-group">
+            <h1>🧘 Sun Salutation</h1>
+            <span class="header-sub">AI Counter</span>
+        </div>
     </div>
 
-    <div id="loading" style="position:absolute;top:14px;right:16px;z-index:100">
+    <div id="loading">
         <div class="spinner"></div>
     </div>
 
     <div id="app">
         <div class="main-grid">
-
-            <!-- VIDEO -->
             <div style="min-height:0;height:100%;display:flex;flex-direction:column">
                 <div class="video-wrap" style="flex:1">
                     <video id="video" autoplay playsinline></video>
@@ -391,37 +391,25 @@
                 </div>
             </div>
 
-            <!-- SIDEBAR -->
             <div class="sidebar">
-
                 <div class="card" id="statsCard">
-                    <div class="card-label">Completed Rounds</div>
+                    <div class="card-label">✦ Completed Rounds</div>
                     <div class="stat-big" id="counterVal">0</div>
                 </div>
-
-                <div class="card" id="stageCard" class="hidden">
-                    <div class="card-label">Current Pose</div>
+                <div class="card hidden" id="stageCard">
+                    <div class="card-label">🎯 Current Pose</div>
                     <div class="stage-name" id="stageName">—</div>
                     <div class="progress-track" id="progressPips"></div>
                 </div>
-
-                <!-- AI Outfit Card -->
                 <div class="card" id="outfitCard">
-                    <div class="card-label">AI Outfit Recognition</div>
+                    <div class="card-label">👁️ Outfit Recognition</div>
                     <div id="outfitContent">
                         <div style="color:var(--muted); font-size:0.8rem;">No outfit captured yet.</div>
                     </div>
                 </div>
-
-                <div class="card">
+                <div class="card" style="padding: 16px;">
                     <div id="btnRow" class="btn-row"></div>
                 </div>
-
-                <div class="debug-card">
-                    <div class="card-label">Pose Debug</div>
-                    <div class="debug-content" id="debugInfo">Waiting…</div>
-                </div>
-
             </div>
         </div>
     </div>
@@ -432,30 +420,31 @@
 const STAGES = ["Mountain","Upward Salute","Forward Fold","Lunge Left","Plank",
                 "Low Plank","Cobra","Downward Dog","Lunge Right","Forward Fold",
                 "Upward Salute","Mountain"];
-const CONFIG = { holdFrames:8, historySize:5, poseLostThreshold:30 };
 
-// HSV verification config
+const CONFIG = { holdFrames: 60, historySize: 5, poseLostThreshold: 30 };
+
 const HSV_CONFIG = {
-    hueBins: 36,          // 10° per bin
-    minSaturation: 0.12,  // ignore near-grey pixels (shadows, white shirts handled separately)
-    matchThreshold: 0.62, // histogram intersection threshold
-    brightThreshold: 0.88 // treat very bright pixels as highlights, downweight
+    hueBins: 36,
+    valBins: 16,
+    minSaturation: 0.20,
+    matchThreshold: 0.78,
+    brightThreshold: 0.92
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let detector, video, canvas, ctx;
-let setupMode = false, sessionActive = false;
+let setupMode = true; 
+let sessionActive = false;
 let stageIndex = 0, counter = 0, holdCounter = 0;
 let landmarkHistory = [], framesWithoutPose = 0;
 let lastTime = Date.now(), fps = 0;
-let debugText = "";
 
-// HSV outfit state
-let authorizedOutfit = null;  // { hueHist, satMean, valMean, neutralRatio }
+let authorizedOutfit = null;
 let lastVerifyResult = null;
-let personInFrame = false;     // was someone detected last frame?
-let needsReEntryCheck = false; // flag: someone left and came back
+let lastVerifyTime = 0;
 let intruderDetected = false;
+let mismatchSince = null;
+const MISMATCH_GRACE_MS = 3000;
 
 // ─── RGB → HSV ────────────────────────────────────────────────────────────────
 function rgbToHsv(r, g, b) {
@@ -471,8 +460,6 @@ function rgbToHsv(r, g, b) {
     return { h, s, v };
 }
 
-// ─── Build Outfit Signature ───────────────────────────────────────────────────
-// Samples 3 horizontal bands across the torso for robustness
 function buildOutfitSignature(kp) {
     const ls = kp[5], rs = kp[6], lh = kp[11], rh = kp[12];
     if ([ls, rs, lh, rh].some(k => k.score < 0.3)) return null;
@@ -486,8 +473,8 @@ function buildOutfitSignature(kp) {
     if (w < 20 || h < 20) return null;
 
     const imageData = ctx.getImageData(x1, y1, w, h).data;
-
-    const hueHist   = new Float32Array(HSV_CONFIG.hueBins).fill(0);
+    const hueHist = new Float32Array(HSV_CONFIG.hueBins).fill(0);
+    const valHist = new Float32Array(HSV_CONFIG.valBins).fill(0);
     let satSum = 0, valSum = 0, neutralCount = 0, totalCount = 0;
 
     for (let i = 0; i < imageData.length; i += 4) {
@@ -495,116 +482,102 @@ function buildOutfitSignature(kp) {
         totalCount++;
         satSum += s;
         valSum += v;
-
+        const vBin = Math.min(HSV_CONFIG.valBins - 1, Math.floor(v * HSV_CONFIG.valBins));
+        valHist[vBin]++;
         if (s < HSV_CONFIG.minSaturation) {
-            // Near-neutral pixel (grey, white, black)
             neutralCount++;
         } else if (v < HSV_CONFIG.brightThreshold) {
-            // Chromatic, non-blown-out pixel — add to hue histogram
             const bin = Math.floor(h * HSV_CONFIG.hueBins) % HSV_CONFIG.hueBins;
-            hueHist[bin] += s; // weight by saturation so vivid colors count more
+            hueHist[bin] += s;
         }
     }
 
-    // Normalise hue histogram
-    const histSum = hueHist.reduce((a, b) => a + b, 0);
-    if (histSum > 0) hueHist.forEach((_, i) => hueHist[i] /= histSum);
+    const hueSum = hueHist.reduce((a, b) => a + b, 0);
+    if (hueSum > 0) hueHist.forEach((_, i) => hueHist[i] /= hueSum);
+    const vSum = valHist.reduce((a, b) => a + b, 0);
+    if (vSum > 0) valHist.forEach((_, i) => valHist[i] /= vSum);
 
-    return {
-        hueHist,
-        satMean:     satSum / totalCount,
-        valMean:     valSum / totalCount,
-        neutralRatio: neutralCount / totalCount,
-        w, h
-    };
+    return { hueHist, valHist, satMean: satSum/totalCount, valMean: valSum/totalCount, neutralRatio: neutralCount/totalCount, heightRatio: measurePersonHeight(kp) };
 }
 
-// ─── Histogram Intersection ───────────────────────────────────────────────────
-// Returns 0–1 where 1 = identical distribution
 function histIntersection(a, b) {
     let sum = 0;
     for (let i = 0; i < a.length; i++) sum += Math.min(a[i], b[i]);
     return sum;
 }
 
-// ─── Verify Outfit ────────────────────────────────────────────────────────────
+function measurePersonHeight(kp) {
+    const nose = kp[0], lAnkle = kp[15], rAnkle = kp[16], lSh = kp[5], rSh = kp[6];
+    if (nose.score < 0.3 || lSh.score < 0.3 || rSh.score < 0.3) return null;
+    const ankle = (lAnkle.score >= rAnkle.score) ? lAnkle : rAnkle;
+    if (ankle.score < 0.25) return null;
+    const rawHeight = ankle.y - nose.y;
+    const shoulderWidth = Math.abs(lSh.x - rSh.x);
+    return shoulderWidth < 10 ? null : rawHeight / shoulderWidth;
+}
+
 function verifyOutfitHSV(kp) {
     if (!authorizedOutfit) return false;
-
     const current = buildOutfitSignature(kp);
-    if (!current) return true; // torso not visible (horizontal pose) — pass through
+    if (!current) return true;
 
-    const hueScore = histIntersection(authorizedOutfit.hueHist, current.hueHist);
-    const isNeutralOutfit = authorizedOutfit.neutralRatio > 0.6;
-    let score;
-    if (isNeutralOutfit) {
-        const satDiff = Math.abs(authorizedOutfit.satMean - current.satMean);
-        const valDiff = Math.abs(authorizedOutfit.valMean - current.valMean);
-        score = 1 - (satDiff * 0.4 + valDiff * 0.4);
-    } else {
-        const satSim = 1 - Math.min(1, Math.abs(authorizedOutfit.satMean - current.satMean) * 3);
-        score = hueScore * 0.80 + satSim * 0.20;
+    const isNeutralOutfit = authorizedOutfit.neutralRatio > 0.55;
+    const isNeutralCurrent = current.neutralRatio > 0.55;
+
+    if (isNeutralOutfit !== isNeutralCurrent) return false;
+
+    const valScore = histIntersection(authorizedOutfit.valHist, current.valHist);
+    const neutralSim = 1 - Math.abs(authorizedOutfit.neutralRatio - current.neutralRatio);
+
+    let score = isNeutralOutfit ? (valScore * 0.65 + neutralSim * 0.35) : 
+                (histIntersection(authorizedOutfit.hueHist, current.hueHist) * 0.65 + valScore * 0.20 + (1 - Math.min(1, Math.abs(authorizedOutfit.satMean - current.satMean) * 4)) * 0.15);
+
+    let heightMatch = true;
+    if (authorizedOutfit.heightRatio && current.heightRatio) {
+        heightMatch = Math.abs(authorizedOutfit.heightRatio - current.heightRatio) / authorizedOutfit.heightRatio < 0.18;
     }
 
-    const match = score >= HSV_CONFIG.matchThreshold;
-    lastVerifyResult = { match, score, reason: isNeutralOutfit ? 'neutral-mode' : 'hue-mode' };
-    updateOutfitScore(score, match, isNeutralOutfit);
+    const match = score >= HSV_CONFIG.matchThreshold && heightMatch;
+    updateOutfitScore(score, match);
     return match;
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
     try {
-        detector = await poseDetection.createDetector(
-            poseDetection.SupportedModels.MoveNet,
-            { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-        );
-        video  = document.getElementById('video');
+        detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING });
+        video = document.getElementById('video');
         canvas = document.getElementById('canvas');
-        ctx    = canvas.getContext('2d');
+        ctx = canvas.getContext('2d');
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width:1280, height:720, facingMode:'user' }
+        // REQUESTING 60 FPS FROM HARDWARE
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: 1280, 
+                height: 720, 
+                frameRate: { ideal: 60, min: 30 } 
+            } 
         });
+        
         video.srcObject = stream;
-        await new Promise(r => { video.onloadedmetadata = () => {
-            canvas.width  = video.videoWidth;
-            canvas.height = video.videoHeight;
-            r();
-        }});
-
-        const saved = localStorage.getItem('authorizedOutfitHSV');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            // Restore Float32Array from plain array
-            parsed.hueHist = new Float32Array(parsed.hueHist);
-            authorizedOutfit = parsed;
-            setupMode = false;
-        } else {
-            setupMode = true;
-        }
+        await new Promise(r => { video.onloadedmetadata = () => { canvas.width=video.videoWidth; canvas.height=video.videoHeight; r(); } });
 
         document.getElementById('loading').classList.add('hidden');
         updateUI();
         detectPose();
     } catch(err) {
-        document.getElementById('loading').innerHTML =
-            `<p style="color:#f87171">Error: ${err.message}</p>
-             <p style="color:#6b6b80;font-size:.85rem;margin-top:8px">Please allow camera access and refresh.</p>`;
+        document.getElementById('loading').innerHTML = `<p style="color:#f87171">Error: ${err.message}</p>`;
     }
 }
 
 // ─── Pose Loop ────────────────────────────────────────────────────────────────
 async function detectPose() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const poses = await detector.estimatePoses(canvas);
 
     if (poses.length > 0) {
-        // Person just re-entered the frame
-        if (!personInFrame && sessionActive) needsReEntryCheck = true;
-        personInFrame = true;
         framesWithoutPose = 0;
-
         const pose = poses[0];
         landmarkHistory.push(pose.keypoints);
         if (landmarkHistory.length > CONFIG.historySize) landmarkHistory.shift();
@@ -614,7 +587,6 @@ async function detectPose() {
         if (!sessionActive && !setupMode) verifySession(smoothed);
         if (sessionActive) checkStage(smoothed);
     } else {
-        personInFrame = false;
         framesWithoutPose++;
         if (framesWithoutPose > CONFIG.poseLostThreshold && sessionActive) endSession();
     }
@@ -623,12 +595,10 @@ async function detectPose() {
     fps = Math.round(1000 / (now - lastTime));
     lastTime = now;
     document.getElementById('fps').textContent = fps;
-    document.getElementById('debugInfo').textContent = debugText;
 
     requestAnimationFrame(detectPose);
 }
 
-// ─── Helpers: Pose Math ───────────────────────────────────────────────────────
 function smoothLandmarks(history) {
     return Array.from({length:17}, (_,i) => {
         let x=0, y=0, score=0;
@@ -638,358 +608,109 @@ function smoothLandmarks(history) {
 }
 
 function calculateAngle(a, b, c) {
-    const rad = Math.atan2(c.y-b.y, c.x-b.x) - Math.atan2(a.y-b.y, a.x-b.x);
-    let angle = Math.abs(rad * 180 / Math.PI);
-    if (angle > 180) angle = 360 - angle;
-    return angle;
+    let angle = Math.abs((Math.atan2(c.y-b.y, c.x-b.x) - Math.atan2(a.y-b.y, a.x-b.x)) * 180 / Math.PI);
+    return angle > 180 ? 360 - angle : angle;
 }
 
-function chooseSide(kp) {
-    const lv = (kp[5].score||0)+(kp[11].score||0)+(kp[13].score||0);
-    const rv = (kp[6].score||0)+(kp[12].score||0)+(kp[14].score||0);
-    return lv > rv ? 'left' : 'right';
-}
-
-// ─── Draw ─────────────────────────────────────────────────────────────────────
 function drawSkeleton(kp) {
-    const edges = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],
-                   [11,13],[13,15],[12,14],[14,16]];
-    ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2.5;
-    edges.forEach(([s,e]) => {
-        if (kp[s].score > 0.3 && kp[e].score > 0.3) {
-            ctx.beginPath();
-            ctx.moveTo(kp[s].x, kp[s].y);
-            ctx.lineTo(kp[e].x, kp[e].y);
-            ctx.stroke();
-        }
-    });
-    kp.forEach(k => {
-        if (k.score > 0.3) {
-            ctx.fillStyle = '#34d399';
-            ctx.beginPath();
-            ctx.arc(k.x, k.y, 5, 0, 2*Math.PI);
-            ctx.fill();
-        }
-    });
+    const edges = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
+    ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    edges.forEach(([s,e]) => { if (kp[s].score > 0.3 && kp[e].score > 0.3) { ctx.beginPath(); ctx.moveTo(kp[s].x, kp[s].y); ctx.lineTo(kp[e].x, kp[e].y); ctx.stroke(); } });
 }
 
-// ─── Capture Outfit ───────────────────────────────────────────────────────────
+// ─── Capture ──────────────────────────────────────────────────────────────────
 async function captureOutfit() {
     const btn = document.querySelector('.btn-primary');
-    if (btn) btn.disabled = true;
-
-    // 5-second countdown overlay on canvas
     for (let i = 5; i >= 1; i--) {
-        // Draw countdown number centred on canvas
-        const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        ctx.putImageData(snapshot, 0, 0);
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'white';
-        ctx.font = `bold ${Math.round(canvas.width * 0.2)}px DM Mono, monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(i, canvas.width / 2, canvas.height / 2);
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        // Also update the button text
-        if (btn) btn.textContent = `📷 Capturing in ${i}…`;
+        btn.textContent = `📷 Capturing in ${i}…`;
         await new Promise(r => setTimeout(r, 1000));
     }
-
-    if (btn) btn.textContent = '📷 Capturing…';
-
     const poses = await detector.estimatePoses(canvas);
-    if (!poses.length) {
-        if (btn) { btn.disabled = false; btn.textContent = '📷 Capture Outfit'; }
-        alert('No person detected. Stand in front of the camera.');
-        return;
-    }
-
-    const sig = buildOutfitSignature(poses[0].keypoints);
-    if (!sig) {
-        if (btn) { btn.disabled = false; btn.textContent = '📷 Capture Outfit'; }
-        alert('Could not read torso region. Make sure your full body is visible.');
-        return;
-    }
-
-    authorizedOutfit = sig;
-    const toStore = { ...sig, hueHist: Array.from(sig.hueHist) };
-    localStorage.setItem('authorizedOutfitHSV', JSON.stringify(toStore));
+    if (!poses.length) { btn.textContent = '📷 Capture Outfit'; alert('No person detected.'); return; }
+    authorizedOutfit = buildOutfitSignature(poses[0].keypoints);
     setupMode = false;
-    lastVerifyResult = null;
     updateUI();
-    updateOutfitPanel(sig);
+    updateOutfitPanel(authorizedOutfit);
 }
 
-// ─── Session Verification ─────────────────────────────────────────────────────
 function verifySession(kp) {
-    const side = chooseSide(kp);
-    const si = side === 'left'
-        ? { shoulder:5, hip:11, wrist:9, ankle:15 }
-        : { shoulder:6, hip:12, wrist:10, ankle:16 };
-    const sh = kp[si.shoulder], hp = kp[si.hip], wr = kp[si.wrist], an = kp[si.ankle];
-    const mountainOk = detectMountain(sh, hp, wr, an);
-
-    debugText = mountainOk ? 'Mountain ✓ — verifying outfit…' : 'Waiting for Mountain pose…';
-
-    if (!mountainOk) { setStatus('Stand in Mountain pose to begin', 'verifying'); return; }
-
-    const match = verifyOutfitHSV(kp);
-    if (match) {
-        sessionActive = true;
-        setStatus('Session Active', 'active');
-        updateUI();
-    } else {
-        const score = lastVerifyResult?.score ?? 0;
-        setStatus(`Outfit mismatch (${(score*100).toFixed(0)}% match)`, 'unauth');
-    }
+    const I = kp[5].score > kp[6].score ? {sh:5,hp:11,wr:9,an:15} : {sh:6,hp:12,wr:10,an:16};
+    const mountainOk = Math.abs(kp[I.sh].y-kp[I.hp].y)<180 && kp[I.wr].y>kp[I.sh].y-30 && kp[I.an].y>kp[I.hp].y-30;
+    if (!mountainOk) { setStatus('Stand in Mountain pose', 'verifying'); return; }
+    if (verifyOutfitHSV(kp)) { sessionActive = true; setStatus('Session Active', 'active'); updateUI(); }
 }
 
-// ─── Pose Detectors ───────────────────────────────────────────────────────────
-function detectMountain(sh, hp, wr, an) {
-    if (!sh||!hp||!wr||!an) return false;
-    if ([sh,hp,wr,an].some(k=>k.score<0.3)) return false;
-    return Math.abs(sh.y-hp.y)<180 && wr.y>sh.y-30 && an.y>hp.y-30;
-}
-function detectUpwardSalute(sh, wr) {
-    if (!sh||!wr||sh.score<0.3||wr.score<0.3) return false;
-    return wr.y < sh.y-25;
-}
-function detectForwardFold(sh, hp, wr, kn) {
-    if (!sh||!hp||!wr||!kn||[sh,hp,wr,kn].some(k=>k.score<0.3)) return false;
-    return sh.y>hp.y-50 && wr.y>kn.y-70;
-}
-function detectLunge(knAngle, hp, kn, an, sh) {
-    if (!hp||!kn||!an||!sh||[hp,kn,an,sh].some(k=>k.score<0.3)) return false;
-    return Math.abs(sh.y-hp.y)<120 && knAngle>100 && Math.abs(kn.y-an.y)<60;
-}
-function detectPlank(sh, hp, kn, an, ok, oa, ka, oka) {
-    if (!sh||!hp||!kn||!an||!ok||!oa||[sh,hp,kn,an,ok,oa].some(k=>k.score<0.3)) return false;
-    return Math.abs(sh.y-hp.y)<100 && Math.abs(hp.y-kn.y)<100 &&
-           an.y>kn.y-20 && oa.y>ok.y-20 && ka>140 && oka>140;
-}
-function detectLowPlank(sh, hp, wr) {
-    if (!sh||!hp||!wr) return false;
-    return sh.y<wr.y+40 && Math.abs(sh.y-hp.y)<60;
-}
-function detectCobra(sh, hp, kn, wr) {
-    if (!sh||!hp||!kn||!wr||[sh,hp,kn,wr].some(k=>k.score<0.3)) return false;
-    return sh.y<hp.y-40 && hp.y>kn.y-100 && wr.y>sh.y-20;
-}
-function detectDownwardDog(sh, hp, kn, an, wr) {
-    if (!sh||!hp||!kn||!an||!wr||[sh,hp,kn,an,wr].some(k=>k.score<0.3)) return false;
-    return hp.y<sh.y-20 && wr.y>hp.y && an.y>hp.y;
-}
-
-// ─── Intruder Alert ──────────────────────────────────────────────────────────────
-function triggerIntruderAlert() {
-    if (intruderDetected) return; // already showing alert
-    intruderDetected = true;
-    sessionActive = false;
-    holdCounter = 0;
-
-    setStatus('⚠ Person mismatch detected — session paused', 'unauth');
-
-    // Overlay warning on canvas
-    ctx.fillStyle = 'rgba(239,68,68,0.55)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'white';
-    ctx.font = `bold ${Math.round(canvas.width * 0.045)}px DM Mono, monospace`;
-    ctx.textAlign = 'center';
-    ctx.fillText('⚠ ORIGINAL PERSON NOT DETECTED', canvas.width / 2, canvas.height / 2 - 30);
-    ctx.font = `${Math.round(canvas.width * 0.025)}px DM Mono, monospace`;
-    ctx.fillText('Session stopped. Please re-verify to continue.', canvas.width / 2, canvas.height / 2 + 20);
-    ctx.textAlign = 'left';
-
-    // Update sidebar
-    const btns = document.getElementById('btnRow');
-    btns.innerHTML = `
-        <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:10px;padding:14px;margin-bottom:8px;font-size:.8rem;line-height:1.6;color:#f87171">
-            ⚠ The person in frame does not match the registered person.<br>
-            Session has been stopped to prevent unauthorised counting.
-        </div>
-        <button class="btn-primary" onclick="resumeAfterAlert()">↺ Re-verify & Resume</button>
-        <button class="btn-danger" onclick="deleteOutfit()">✕ Reset & Recapture Outfit</button>`;
-
-    const score = lastVerifyResult?.score ?? 0;
-    updateOutfitScore(score, false, lastVerifyResult?.neutralMode ?? false);
-}
-
-function resumeAfterAlert() {
-    intruderDetected = false;
-    sessionActive = false;
-    stageIndex = 0;
-    holdCounter = 0;
-    lastVerifyResult = null;
-    needsReEntryCheck = false;
-    updateUI();
-    setStatus('Stand in Mountain pose to re-verify', 'verifying');
-}
-
-// ─── Stage Check ──────────────────────────────────────────────────────────────
 function checkStage(kp) {
-    // Only verify outfit when someone re-enters the frame
-    if (needsReEntryCheck) {
-        needsReEntryCheck = false;
-        const match = verifyOutfitHSV(kp);
-        if (!match) {
-            triggerIntruderAlert();
-            return;
+    const nowMs = Date.now();
+    if (nowMs - lastVerifyTime >= 1000) {
+        lastVerifyTime = nowMs;
+        if (!verifyOutfitHSV(kp)) {
+            if (!mismatchSince) mismatchSince = nowMs;
+            if (nowMs - mismatchSince >= MISMATCH_GRACE_MS) triggerIntruderAlert();
+        } else {
+            mismatchSince = null; if (intruderDetected) clearIntruderAlert();
         }
     }
+    if (intruderDetected) return;
 
-    const side = chooseSide(kp);
-    const I = side==='left'
-        ? {sh:5,el:7,hp:11,kn:13,an:15,wr:9,oh:12,ok:14,oa:16}
-        : {sh:6,el:8,hp:12,kn:14,an:16,wr:10,oh:11,ok:13,oa:15};
-
-    const sh=kp[I.sh], el=kp[I.el], hp=kp[I.hp], kn=kp[I.kn],
-          an=kp[I.an], wr=kp[I.wr], oh=kp[I.oh], ok=kp[I.ok], oa=kp[I.oa];
-    const ka  = calculateAngle(hp, kn, an);
-    const oka = calculateAngle(oh, ok, oa);
-    const stage = STAGES[stageIndex];
+    const I = kp[5].score > kp[6].score ? {sh:5,hp:11,kn:13,an:15,wr:9,oh:12,ok:14,oa:16} : {sh:6,hp:12,kn:14,an:16,wr:10,oh:11,ok:13,oa:15};
+    const sh=kp[I.sh], hp=kp[I.hp], kn=kp[I.kn], an=kp[I.an], wr=kp[I.wr], ok=kp[I.ok], oa=kp[I.oa];
     let hit = false;
 
-    debugText = `Stage: ${stage} (${stageIndex+1}/${STAGES.length})\nHold: ${holdCounter}/${CONFIG.holdFrames}\n`;
-
-    switch (stage) {
-        case "Mountain":       hit = detectMountain(sh,hp,wr,an); break;
-        case "Upward Salute":  hit = detectUpwardSalute(sh,wr); break;
-        case "Forward Fold":   hit = detectForwardFold(sh,hp,wr,kn); break;
+    switch (STAGES[stageIndex]) {
+        case "Mountain":      hit = Math.abs(sh.y-hp.y)<180 && wr.y>sh.y-30 && an.y>hp.y-30; break;
+        case "Upward Salute": hit = wr.y < sh.y-25; break;
+        case "Forward Fold":  hit = sh.y>hp.y-50 && wr.y>kn.y-70; break;
         case "Lunge Left":
-        case "Lunge Right":    hit = detectLunge(ka,hp,kn,an,sh); break;
-        case "Plank":          hit = detectPlank(sh,hp,kn,an,ok,oa,ka,oka); break;
-        case "Low Plank":      hit = detectLowPlank(sh,hp,wr); break;
-        case "Cobra":          hit = detectCobra(sh,hp,kn,wr); break;
-        case "Downward Dog":   hit = detectDownwardDog(sh,hp,kn,an,wr); break;
+        case "Lunge Right":   hit = Math.abs(sh.y-hp.y)<120 && Math.abs(an.x - kp[I.oa].x) > 80; break;
+        case "Plank":         hit = Math.abs(sh.y-hp.y)<100 && Math.abs(hp.y-kn.y)<100; break;
+        case "Low Plank":     hit = Math.abs(sh.y-hp.y)<80 && sh.y < wr.y + 50; break;
+        case "Cobra":         hit = sh.y<hp.y-40 && hp.y>kn.y-100; break;
+        case "Downward Dog":  hit = hp.y<sh.y-20 && wr.y>hp.y; break;
     }
-
-    debugText += `Detected: ${hit}\nSide: ${side}`;
 
     const pct = (holdCounter / CONFIG.holdFrames) * 100;
     document.getElementById('holdFill').style.width = pct + '%';
-    document.getElementById('holdLabel').textContent =
-        hit ? `Hold ${holdCounter}/${CONFIG.holdFrames}` : '';
+    document.getElementById('holdLabel').textContent = hit ? `Hold Position — ${Math.round(pct)}%` : '';
 
     if (hit) {
         holdCounter++;
-        if (holdCounter >= CONFIG.holdFrames) {
-            stageIndex++;
-            if (stageIndex >= STAGES.length) { counter++; stageIndex = 0; }
-            holdCounter = 0;
-            updateUI();
-        }
-    } else {
-        holdCounter = Math.max(0, holdCounter - 1);
-    }
+        if (holdCounter >= CONFIG.holdFrames) { stageIndex++; if (stageIndex >= STAGES.length) { counter++; stageIndex = 0; } holdCounter = 0; updateUI(); }
+    } else { holdCounter = Math.max(0, holdCounter - 1); }
 }
 
-// ─── UI Updates ───────────────────────────────────────────────────────────────
-function setStatus(text, type) {
-    document.getElementById('statusText').textContent = text;
-    document.getElementById('statusDot').className = 'status-dot dot-' + type;
-}
+function setStatus(text, type) { document.getElementById('statusText').textContent = text; document.getElementById('statusDot').className = 'status-dot dot-' + type; }
+function triggerIntruderAlert() { intruderDetected = true; setStatus('⚠ Mismatch', 'unauth'); }
+function clearIntruderAlert() { intruderDetected = false; setStatus('Session Active', 'active'); updateUI(); }
 
 function updateOutfitPanel(sig) {
-    if (!sig) { document.getElementById('outfitContent').innerHTML =
-        `<div style="color:var(--muted);font-size:.8rem">No outfit captured yet.</div>`; return; }
-
-    const neutralPct  = (sig.neutralRatio * 100).toFixed(0);
-    const mode = sig.neutralRatio > 0.6 ? 'neutral (dark/white)' : 'chromatic (colour)';
-    document.getElementById('outfitContent').innerHTML = `
-        <div class="ai-outfit-panel">
-            <div class="ai-outfit-label">✦ HSV Signature</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-                <div>
-                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">MODE</div>
-                    <div style="font-size:.75rem;color:var(--text)">${mode}</div>
-                </div>
-                <div>
-                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">NEUTRAL %</div>
-                    <div style="font-size:.75rem;color:var(--text)">${neutralPct}%</div>
-                </div>
-                <div>
-                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">AVG SAT</div>
-                    <div style="font-size:.75rem;color:var(--text)">${(sig.satMean*100).toFixed(0)}%</div>
-                </div>
-                <div>
-                    <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">AVG VAL</div>
-                    <div style="font-size:.75rem;color:var(--text)">${(sig.valMean*100).toFixed(0)}%</div>
-                </div>
-            </div>
-            <div style="font-size:.65rem;color:var(--muted);margin-bottom:5px">HUE DISTRIBUTION</div>
-            ${renderHueBar(sig.hueHist)}
-            <div class="ai-verify-result" id="verifyResult">
-                <span class="verify-badge verify-thinking">—</span>
-                <span style="color:var(--muted);font-size:.73rem">Not yet checked</span>
-            </div>
-        </div>`;
+    const el = document.getElementById('outfitContent');
+    el.innerHTML = sig ? `<div class="ai-outfit-panel"><div id="verifyResult"><span class="verify-badge verify-match">✓ Matched</span></div></div>` : `<div style="color:var(--muted);font-size:0.8rem">No outfit captured yet.</div>`;
 }
 
-function renderHueBar(hist) {
-    // Render a small hue histogram as coloured bars
-    const bars = Array.from(hist).map((v, i) => {
-        const hue = Math.round((i / hist.length) * 360);
-        const h = Math.round(v * 100 * 8); // scale for visibility
-        return `<div style="flex:1;height:${Math.max(2,h)}px;background:hsl(${hue},80%,55%);border-radius:2px 2px 0 0;align-self:flex-end"></div>`;
-    }).join('');
-    return `<div style="display:flex;gap:1px;height:32px;align-items:flex-end;background:var(--surface2);padding:4px;border-radius:6px">${bars}</div>`;
-}
-
-function updateOutfitScore(score, match, neutralMode) {
+function updateOutfitScore(score, match) {
     const el = document.getElementById('verifyResult');
-    if (!el) return;
-    const pct = (score * 100).toFixed(0);
-    const cls  = match ? 'verify-match' : 'verify-no-match';
-    const icon = match ? `✓ Match` : `✗ No match`;
-    el.innerHTML = `<span class="verify-badge ${cls}">${icon}</span>
-        <span style="color:var(--muted);font-size:.73rem">${pct}% — ${neutralMode?'neutral':'hue'} mode</span>`;
+    if (el) el.innerHTML = `<span class="verify-badge ${match ? 'verify-match' : 'verify-no-match'}">${match ? '✓ Matched' : '✕ Mismatch'}</span>`;
 }
 
 function updateUI() {
     const btns = document.getElementById('btnRow');
-    btns.innerHTML = '';
-
     if (setupMode) {
-        setStatus('Setup — capture your outfit', 'setup');
+        document.getElementById('stageCard').classList.add('hidden');
         btns.innerHTML = `<button class="btn-primary" onclick="captureOutfit()">📷 Capture Outfit</button>`;
-        updateOutfitPanel(null);
-    } else if (sessionActive) {
-        setStatus('Session Active', 'active');
-        btns.innerHTML = `
-            <button class="btn-secondary" onclick="resetSession()">↺ Reset Stage</button>
-            <button class="btn-secondary" onclick="endSession()">⏹ End Session</button>
-            <button class="btn-danger"    onclick="deleteOutfit()">✕ Delete Outfit</button>`;
+    } else {
+        document.getElementById('stageCard').classList.toggle('hidden', !sessionActive);
+        btns.innerHTML = `<button class="btn-secondary" onclick="resetSession()">↺ Reset</button><button class="btn-danger" onclick="deleteOutfit()">✕ Delete Outfit</button>`;
         document.getElementById('counterVal').textContent = counter;
         document.getElementById('stageName').textContent = STAGES[stageIndex];
-        const pips = document.getElementById('progressPips');
-        pips.innerHTML = STAGES.map((_,i) =>
-            `<div class="progress-pip ${i < stageIndex ? 'done' : i === stageIndex ? 'current' : ''}"></div>`
-        ).join('');
-        if (authorizedOutfit && !document.getElementById('verifyResult')) {
-            updateOutfitPanel(authorizedOutfit);
-        }
-    } else {
-        setStatus('Stand in Mountain pose', 'verifying');
-        btns.innerHTML = `<button class="btn-danger" onclick="deleteOutfit()">✕ Delete Outfit</button>`;
-        if (authorizedOutfit) updateOutfitPanel(authorizedOutfit);
+        document.getElementById('progressPips').innerHTML = STAGES.map((_,i) => `<div class="progress-pip ${i < stageIndex ? 'done' : i === stageIndex ? 'current' : ''}"></div>`).join('');
     }
 }
 
-function resetSession()  { stageIndex = 0; holdCounter = 0; updateUI(); }
-function endSession()    { sessionActive = false; resetSession(); }
-function deleteOutfit()  {
-    localStorage.removeItem('authorizedOutfitHSV');
-    authorizedOutfit = null;
-    setupMode = true;
-    sessionActive = false;
-    lastVerifyResult = null;
-    needsReEntryCheck = false;
-    updateUI();
-}
+function resetSession() { stageIndex = 0; holdCounter = 0; mismatchSince = null; updateUI(); }
+function deleteOutfit() { authorizedOutfit = null; setupMode = true; sessionActive = false; updateUI(); }
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
+</html>
