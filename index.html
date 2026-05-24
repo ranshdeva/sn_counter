@@ -405,7 +405,7 @@
         function detectLowPlank(sh, hip, kn, wr){
             if(!sh||!hip||!kn||!wr) return false;
             if(sh.score<0.3||hip.score<0.3||kn.score<0.3||wr.score<0.3) return false;
-            const waistAtWrist = Math.abs(hip.y - wr.y) < 60;
+            const waistAtWrist = (wr.y - hip.y) < 120 && (hip.y - wr.y) < 60; // lenient if butt is up
             const kneesAtWrist = Math.abs(kn.y  - wr.y) < 80;
             return waistAtWrist && kneesAtWrist;
         }
@@ -494,7 +494,7 @@
                     break;
                 case "Low Plank":
                     detected = detectLowPlank(sh, hip, kn, wr);
-                    debugText += `Waist-Wrist diff: ${Math.abs(hip.y-wr.y).toFixed(0)}px (< 60?): ${Math.abs(hip.y-wr.y)<60}\n`;
+                    debugText += `Waist-Wrist diff: ${(wr.y-hip.y).toFixed(0)}px above (< 120?): ${(wr.y-hip.y)<120}\n`;
                     debugText += `Knee-Wrist diff: ${Math.abs(kn.y-wr.y).toFixed(0)}px (< 80?): ${Math.abs(kn.y-wr.y)<80}\n`;
                     debugText += `Low Plank: ${detected}`;
                     break;
