@@ -420,21 +420,6 @@
             return hip.y<sh.y-20 && wr.y>hip.y && ank.y>hip.y;
         }
 
-        function checkPoseByName(name, keypoints, knAng, oppAng, sh, el, hip, kn, ank, wr, oHip, oKn, oAnk){
-            switch(name){
-                case "Mountain":       return detectMountain(sh, hip, wr, ank);
-                case "Upward Salute":  return detectUpwardSalute(sh, wr);
-                case "Forward Fold":   return detectForwardFold(sh, hip, wr, kn, ank, oAnk);
-                case "Lunge Left":
-                case "Lunge Right":    return detectLunge(knAng, hip, kn, ank, sh, oAnk);
-                case "Plank":          return detectPlank(sh, hip, kn, ank, oKn, oAnk, knAng, oppAng);
-                case "Low Plank":      return detectLowPlank(sh, hip, kn, wr);
-                case "Cobra":          return detectCobra(sh, hip, kn, wr);
-                case "Downward Dog":   return detectDownwardDog(sh, hip, kn, ank, wr);
-                default:               return false;
-            }
-        }
-
         function checkStage(keypoints){
             if(performance.now() < cooldownUntil){
                 debugText  = `Stage: ${STAGES[stageIndex]} (${stageIndex+1}/${STAGES.length})\n`;
@@ -539,17 +524,6 @@
                 if(stageIndex >= STAGES.length){ counter++; stageIndex = 0; }
                 cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
                 updateUI();
-            } else {
-                // Skip-forward: if current pose not seen but next one is, advance two stages
-                const nextIndex = (stageIndex + 1) % STAGES.length;
-                const nextDetected = checkPoseByName(STAGES[nextIndex], keypoints, knAng, oppAng, sh, el, hip, kn, ank, wr, oHip, oKn, oAnk);
-                if(nextDetected){
-                    debugText += `\n⏭ Skipped to next pose`;
-                    stageIndex += 2;
-                    if(stageIndex >= STAGES.length){ counter++; stageIndex = stageIndex % STAGES.length; }
-                    cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
-                    updateUI();
-                }
             }
         }
 
