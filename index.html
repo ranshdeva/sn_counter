@@ -7,1143 +7,606 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap');
-
-        :root {
-            --bg: #0a0a0f;
-            --surface: #13131a;
-            --surface2: #1c1c28;
-            --border: rgba(255,255,255,0.07);
-            --accent: #a78bfa;
-            --accent2: #34d399;
-            --warn: #fbbf24;
-            --danger: #f87171;
-            --text: #e8e8f0;
-            --muted: #6b6b80;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        html, body {
-            height: 100vh;
-            overflow: hidden;
-        }
-
         body {
-            font-family: 'DM Mono', monospace;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            padding: 12px 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
-
-        .app-header {
-            display: flex;
-            align-items: baseline;
-            gap: 12px;
-            margin-bottom: 10px;
-            flex-shrink: 0;
-        }
-
+        .container { max-width: 1200px; margin: 0 auto; }
         h1 {
-            font-family: 'Instrument Serif', serif;
-            font-style: italic;
-            font-size: 1.5rem;
-            color: var(--text);
-            letter-spacing: -0.02em;
-        }
-
-        .header-sub {
-            color: var(--muted);
-            font-size: 0.72rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        #app {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 3fr 1fr;
-            gap: 12px;
-            flex: 1;
-            min-height: 0;
-        }
-
-        /* VIDEO */
-        .video-wrap {
-            position: relative;
-            background: var(--surface);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            height: 100%;
-        }
-
-        #video { display: none; }
-        #canvas { display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-
-        .status-overlay {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            right: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(10,10,15,0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-size: 0.82rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
-        .dot-setup    { background: var(--warn); }
-        .dot-active   { background: var(--accent2); }
-        .dot-verifying { background: var(--accent); }
-        .dot-unauth   { background: var(--danger); }
-        .dot-ai       { background: #60a5fa; animation: pulse-fast 0.8s infinite; }
-
-        @keyframes pulse-fast {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.3); }
-        }
-
-        .fps-badge {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(10,10,15,0.7);
-            border: 1px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            color: var(--muted);
-        }
-
-        .hold-bar-wrap {
-            position: absolute;
-            bottom: 16px;
-            left: 16px;
-            right: 16px;
-        }
-
-        .hold-bar {
-            height: 4px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .hold-bar-fill {
-            height: 100%;
-            background: var(--accent2);
-            border-radius: 4px;
-            transition: width 0.1s;
-        }
-
-        .hold-label {
-            font-size: 0.72rem;
-            color: var(--muted);
-            margin-top: 4px;
             text-align: center;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-
-        /* SIDEBAR */
-        .sidebar { display: flex; flex-direction: column; gap: 8px; height: 100%; overflow-y: auto; padding-right: 2px; }
-
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px 14px;
-            flex-shrink: 0;
+        .video-container {
+            position: relative;
+            background: black;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
         }
-
-        .card-label {
-            font-size: 0.65rem;
-            color: var(--muted);
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
-        .stat-big {
-            font-family: 'Instrument Serif', serif;
-            font-style: italic;
-            font-size: 2.4rem;
-            line-height: 1;
-            color: var(--text);
-        }
-
-        .stage-name {
-            font-family: 'Instrument Serif', serif;
-            font-style: italic;
-            font-size: 1.2rem;
-            line-height: 1.2;
-            color: var(--text);
-        }
-
-        .progress-track {
-            display: flex;
-            gap: 4px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-
-        .progress-pip {
-            width: 18px;
-            height: 4px;
-            border-radius: 2px;
-            background: var(--surface2);
-            transition: background 0.3s;
-        }
-
-        .progress-pip.done { background: var(--accent2); }
-        .progress-pip.current { background: var(--accent); }
-
-        /* BUTTONS */
-        .btn-row { display: flex; flex-direction: column; gap: 8px; }
-
-        button {
-            padding: 8px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-family: 'DM Mono', monospace;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
+        #video { display: none; }
+        #canvas {
+            display: block;
             width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            height: auto;
+            border-radius: 20px;
         }
-
-        button:hover { transform: translateY(-1px); filter: brightness(1.15); }
-        button:active { transform: translateY(0); }
-
-        .btn-primary   { background: var(--accent); color: #0a0a0f; border-color: var(--accent); font-weight: 500; }
-        .btn-secondary { background: transparent; color: var(--text); }
-        .btn-danger    { background: transparent; color: var(--danger); border-color: var(--danger); }
-
-        /* AI OUTFIT PANEL */
-        .ai-outfit-panel {
-            background: var(--surface2);
-            border: 1px solid rgba(167,139,250,0.25);
+        .status-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 15px 20px;
             border-radius: 10px;
-            padding: 14px;
-            margin-top: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-align: center;
+            z-index: 10;
         }
-
-        .ai-outfit-label {
-            font-size: 0.68rem;
-            color: var(--accent);
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            margin-bottom: 6px;
+        .status-active   { background: #10b981; color: white; }
+        .status-waiting  { background: #3b82f6; color: white; }
+        .status-intruder { background: #ef4444; color: white; }
+        .fps-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 10;
         }
-
-        .ai-outfit-text {
-            font-size: 0.78rem;
-            color: var(--text);
-            line-height: 1.5;
-            opacity: 0.85;
+        .debug-info {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            z-index: 10;
+            max-width: 400px;
         }
-
-        .ai-verify-result {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .hold-indicator {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background: rgba(255,200,0,0.9);
+            color: black;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            z-index: 10;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .btn-reset  { background: #3b82f6; color: white; }
+        .btn-end    { background: #f97316; color: white; }
+        .btn-relock { background: #8b5cf6; color: white; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .stat-label { color: #6b7280; font-size: 0.9rem; margin-bottom: 8px; }
+        .stat-value { font-size: 2.5rem; font-weight: bold; color: #1f2937; }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
             margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid var(--border);
-            font-size: 0.75rem;
-        }
-
-        .verify-badge {
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.68rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-
-        .verify-match { background: rgba(52,211,153,0.15); color: var(--accent2); }
-        .verify-no-match { background: rgba(248,113,113,0.15); color: var(--danger); }
-        .verify-thinking { background: rgba(96,165,250,0.15); color: #60a5fa; }
-
-        /* DEBUG */
-        .debug-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 14px;
-            flex-shrink: 0;
-        }
-
-        .debug-content {
-            font-size: 0.68rem;
-            color: #4ade80;
-            font-family: 'DM Mono', monospace;
-            line-height: 1.5;
-            white-space: pre;
             overflow: hidden;
         }
-
-        /* LOADING */
-        #loading { display: block; }
-
-        .loading-title {
-            font-family: 'Instrument Serif', serif;
-            font-style: italic;
-            font-size: 1.8rem;
-            color: var(--text);
-        }
-
-        .loading-sub {
-            color: var(--muted);
-            font-size: 0.8rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
+        .progress-fill { height: 100%; background: #10b981; transition: width 0.3s; }
+        .loading { text-align: center; color: white; padding: 50px; font-size: 1.2rem; }
         .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--surface2);
-            border-top: 2px solid var(--accent);
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            width: 50px; height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
         .hidden { display: none; }
-        /* ─── Mobile Layout ─────────────────────────────────────────── */
-        @media (max-width: 768px) {
-            html, body {
-                height: auto;
-                overflow: auto;
-            }
-
-            body {
-                padding: 8px 10px;
-            }
-
-            .app-header {
-                margin-bottom: 8px;
-            }
-
-            h1 { font-size: 1.2rem; }
-
-            .container {
-                flex: none;
-                min-height: 0;
-            }
-
-            #app {
-                flex: none;
-            }
-
-            .main-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-                flex: none;
-            }
-
-            /* Video takes up ~55vh on mobile */
-            .video-wrap {
-                height: 55vw;
-                min-height: 220px;
-                max-height: 60vh;
-            }
-
-            /* Sidebar scrolls naturally below */
-            .sidebar {
-                height: auto;
-                overflow: visible;
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-            }
-
-            /* Outfit + debug cards span full width */
-            #outfitCard,
-            .debug-card,
-            .card:has(#btnRow) {
-                grid-column: 1 / -1;
-            }
-
-            .stat-big { font-size: 2rem; }
-            .stage-name { font-size: 1rem; }
-
-            .card { padding: 10px 12px; }
-
-            .status-overlay {
-                font-size: 0.7rem;
-                padding: 7px 10px;
-                top: 8px;
-                left: 8px;
-                right: 8px;
-            }
-
-            .fps-badge { display: none; }
-
-            button { padding: 10px 12px; font-size: 0.75rem; }
-        }
-
-</style>
+    </style>
 </head>
 <body>
-<div class="container">
-    <div class="app-header">
-        <h1>🧘 Sun Salutation</h1>
-        <span class="header-sub">AI-Powered Counter</span>
-    </div>
+    <div class="container">
+        <h1>🧘 Sun Salutation Counter</h1>
 
-    <div id="loading" style="position:absolute;top:14px;right:16px;z-index:100">
-        <div class="spinner"></div>
-    </div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading AI models...</p>
+        </div>
 
-    <div id="app">
-        <div class="main-grid">
-
-            <!-- VIDEO -->
-            <div style="min-height:0;height:100%;display:flex;flex-direction:column">
-                <div class="video-wrap" style="flex:1">
-                    <video id="video" autoplay playsinline></video>
-                    <canvas id="canvas"></canvas>
-                    <div id="statusOverlay" class="status-overlay">
-                        <div id="statusDot" class="status-dot dot-setup"></div>
-                        <span id="statusText">Setup mode</span>
-                    </div>
-                    <div class="fps-badge">FPS <span id="fps">0</span></div>
-                    <div class="hold-bar-wrap" id="holdWrap">
-                        <div class="hold-bar">
-                            <div class="hold-bar-fill" id="holdFill" style="width:0%"></div>
-                        </div>
-                        <div class="hold-label" id="holdLabel"></div>
-                    </div>
-                </div>
+        <div id="app" class="hidden">
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                <div id="statusBar" class="status-bar"></div>
+                <div class="fps-counter">FPS: <span id="fps">0</span></div>
+                <div id="holdIndicator" class="hold-indicator hidden"></div>
+                <div id="debugInfo" class="debug-info"></div>
             </div>
 
-            <!-- SIDEBAR -->
-            <div class="sidebar">
-
-                <div class="card" id="statsCard">
-                    <div class="card-label">Completed Rounds</div>
-                    <div class="stat-big" id="counterVal">0</div>
-                </div>
-
-                <div class="card" id="stageCard" class="hidden">
-                    <div class="card-label">Current Pose</div>
-                    <div class="stage-name" id="stageName">—</div>
-                    <div class="progress-track" id="progressPips"></div>
-                </div>
-
-                <!-- AI Outfit Card -->
-                <div class="card" id="outfitCard">
-                    <div class="card-label">Outfit Recognition</div>
-                    <div id="outfitContent">
-                        <div style="color:var(--muted); font-size:0.8rem;">No outfit captured yet.</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div id="btnRow" class="btn-row"></div>
-                </div>
-
-                <div class="debug-card">
-                    <div class="card-label">Pose Debug</div>
-                    <div class="debug-content" id="debugInfo">Waiting…</div>
-                </div>
-
-            </div>
+            <div id="controls" class="controls"></div>
+            <div id="stats" class="stats hidden"></div>
         </div>
     </div>
-</div>
 
-<script>
-// ─── Constants ────────────────────────────────────────────────────────────────
-const STAGES = ["Mountain","Upward Salute","Forward Fold","Lunge Left","Plank",
-                "Low Plank","Cobra","Downward Dog","Lunge Right","Forward Fold",
-                "Upward Salute","Mountain"];
-const CONFIG = { holdFrames:8, historySize:5, poseLostThreshold:30 };
-
-// HSV verification config
-const HSV_CONFIG = {
-    hueBins: 36,          // 10° per bin
-    valBins: 16,          // brightness bins
-    minSaturation: 0.20,  // only count clearly chromatic pixels
-    matchThreshold: 0.78, // strict combined match threshold
-    brightThreshold: 0.92
-};
-
-// ─── State ────────────────────────────────────────────────────────────────────
-let detector, video, canvas, ctx;
-let setupMode = false, sessionActive = false;
-let stageIndex = 0, counter = 0, holdCounter = 0;
-let landmarkHistory = [], framesWithoutPose = 0;
-let lastTime = Date.now(), fps = 0;
-let debugText = "";
-
-// HSV outfit state
-let authorizedOutfit = null;  // { hueHist, satMean, valMean, neutralRatio }
-let lastVerifyResult = null;
-let lastVerifyTime = 0;        // timestamp of last outfit check
-let intruderDetected = false;
-let mismatchSince = null;      // timestamp when mismatch streak started
-const MISMATCH_GRACE_MS = 3000; // must be wrong for 3s before pausing
-let plankSnapshot = null; // saved shoulder/knee y when plank was held
-
-// ─── RGB → HSV ────────────────────────────────────────────────────────────────
-function rgbToHsv(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const d = max - min;
-    let h = 0, s = max === 0 ? 0 : d / max, v = max;
-    if (d !== 0) {
-        if      (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-        else if (max === g) h = ((b - r) / d + 2) / 6;
-        else                h = ((r - g) / d + 4) / 6;
-    }
-    return { h, s, v };
-}
-
-// ─── Build Outfit Signature ───────────────────────────────────────────────────
-function buildOutfitSignature(kp) {
-    const ls = kp[5], rs = kp[6], lh = kp[11], rh = kp[12]; // kp passed through
-    if ([ls, rs, lh, rh].some(k => k.score < 0.3)) return null;
-
-    const pad = 20;
-    const x1 = Math.max(0, Math.min(ls.x, rs.x) + pad);
-    const x2 = Math.min(canvas.width,  Math.max(ls.x, rs.x) - pad);
-    const y1 = Math.max(0, Math.min(ls.y, rs.y));
-    const y2 = Math.min(canvas.height, Math.max(lh.y, rh.y));
-    const w = x2 - x1, h = y2 - y1;
-    if (w < 20 || h < 20) return null;
-
-    const imageData = ctx.getImageData(x1, y1, w, h).data;
-
-    const hueHist = new Float32Array(HSV_CONFIG.hueBins).fill(0);
-    const valHist = new Float32Array(HSV_CONFIG.valBins).fill(0);
-    let satSum = 0, valSum = 0, neutralCount = 0, totalCount = 0;
-
-    for (let i = 0; i < imageData.length; i += 4) {
-        const { h, s, v } = rgbToHsv(imageData[i], imageData[i+1], imageData[i+2]);
-        totalCount++;
-        satSum += s;
-        valSum += v;
-
-        // Value (brightness) histogram — captures all pixels
-        const vBin = Math.min(HSV_CONFIG.valBins - 1, Math.floor(v * HSV_CONFIG.valBins));
-        valHist[vBin]++;
-
-        if (s < HSV_CONFIG.minSaturation) {
-            neutralCount++;
-        } else if (v < HSV_CONFIG.brightThreshold) {
-            const bin = Math.floor(h * HSV_CONFIG.hueBins) % HSV_CONFIG.hueBins;
-            hueHist[bin] += s;
-        }
-    }
-
-    // Normalise both histograms
-    const hueSum = hueHist.reduce((a, b) => a + b, 0);
-    if (hueSum > 0) hueHist.forEach((_, i) => hueHist[i] /= hueSum);
-
-    const vSum = valHist.reduce((a, b) => a + b, 0);
-    if (vSum > 0) valHist.forEach((_, i) => valHist[i] /= vSum);
-
-    // Measure height ratio — stored alongside colour signature
-    const heightRatio = measurePersonHeight(kp);
-
-    return {
-        hueHist, valHist,
-        satMean:      satSum / totalCount,
-        valMean:      valSum / totalCount,
-        neutralRatio: neutralCount / totalCount,
-        heightRatio,
-        w, h
-    };
-}
-
-// ─── Histogram Intersection ───────────────────────────────────────────────────
-// Returns 0–1 where 1 = identical distribution
-function histIntersection(a, b) {
-    let sum = 0;
-    for (let i = 0; i < a.length; i++) sum += Math.min(a[i], b[i]);
-    return sum;
-}
-
-// ─── Height Measurement ───────────────────────────────────────────────────────
-// Returns person height as a ratio of canvas height (camera-distance normalised
-// using shoulder-width as a scale reference so zooming in/out doesn't break it).
-function measurePersonHeight(kp) {
-    const nose   = kp[0];
-    const lAnkle = kp[15], rAnkle = kp[16];
-    const lSh    = kp[5],  rSh    = kp[6];
-
-    if (nose.score < 0.3) return null;
-    if (lSh.score < 0.3 || rSh.score < 0.3) return null;
-
-    // Use whichever ankle is more visible
-    const ankle = (lAnkle.score >= rAnkle.score) ? lAnkle : rAnkle;
-    if (ankle.score < 0.25) return null;
-
-    const rawHeight     = ankle.y - nose.y;  // pixels from nose to ankle
-    const shoulderWidth = Math.abs(lSh.x - rSh.x); // used to normalise for distance
-    if (shoulderWidth < 10) return null;
-
-    // height-to-shoulder-width ratio is stable regardless of how far from camera
-    return rawHeight / shoulderWidth;
-}
-
-// ─── Verify Outfit ────────────────────────────────────────────────────────────
-function verifyOutfitHSV(kp) {
-    if (!authorizedOutfit) return false;
-
-    const current = buildOutfitSignature(kp);
-    if (!current) return true; // torso not visible (horizontal pose) — pass through
-
-    const isNeutralOutfit = authorizedOutfit.neutralRatio > 0.55;
-    const isNeutralCurrent = current.neutralRatio > 0.55;
-
-    // If one is neutral and the other isn't, they clearly differ
-    if (isNeutralOutfit !== isNeutralCurrent) {
-        lastVerifyResult = { match: false, score: 0.1, reason: 'neutral-mismatch' };
-        updateOutfitScore(0.1, false, false);
-        return false;
-    }
-
-    // Value (brightness) histogram — always compared, catches dark vs light
-    const valScore = histIntersection(authorizedOutfit.valHist, current.valHist);
-
-    // Neutral ratio similarity — catches e.g. black vs white
-    const neutralSim = 1 - Math.abs(authorizedOutfit.neutralRatio - current.neutralRatio);
-
-    let score;
-    if (isNeutralOutfit) {
-        // For neutral outfits: brightness distribution + neutral ratio are the main signals
-        score = valScore * 0.65 + neutralSim * 0.35;
-    } else {
-        // For chromatic outfits: hue is primary, brightness + saturation are secondary
-        const hueScore = histIntersection(authorizedOutfit.hueHist, current.hueHist);
-        const satSim   = 1 - Math.min(1, Math.abs(authorizedOutfit.satMean - current.satMean) * 4);
-        score = hueScore * 0.65 + valScore * 0.20 + satSim * 0.15;
-    }
-
-    // Height check — only when both readings are available and person is upright
-    let heightMatch = true;
-    if (authorizedOutfit.heightRatio && current.heightRatio) {
-        const heightDiff = Math.abs(authorizedOutfit.heightRatio - current.heightRatio);
-        // Allow 18% relative difference to account for posture variation
-        heightMatch = heightDiff / authorizedOutfit.heightRatio < 0.18;
-    }
-
-    const match = score >= HSV_CONFIG.matchThreshold && heightMatch;
-    lastVerifyResult = { match, score, heightMatch, reason: isNeutralOutfit ? 'neutral-mode' : 'hue-mode' };
-    updateOutfitScore(score, match, isNeutralOutfit);
-    return match;
-}
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
-async function init() {
-    try {
-        detector = await poseDetection.createDetector(
-            poseDetection.SupportedModels.MoveNet,
-            { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-        );
-        video  = document.getElementById('video');
-        canvas = document.getElementById('canvas');
-        ctx    = canvas.getContext('2d');
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width:1280, height:720, facingMode:'user' }
-        });
-        video.srcObject = stream;
-        await new Promise(r => { video.onloadedmetadata = () => {
-            canvas.width  = video.videoWidth;
-            canvas.height = video.videoHeight;
-            r();
-        }});
-
-        const saved = localStorage.getItem('authorizedOutfitHSV');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            parsed.hueHist = new Float32Array(parsed.hueHist);
-            parsed.valHist = parsed.valHist ? new Float32Array(parsed.valHist) : new Float32Array(HSV_CONFIG.valBins).fill(1/HSV_CONFIG.valBins);
-            authorizedOutfit = parsed;
-            setupMode = false;
-        } else {
-            setupMode = true;
-        }
-
-        document.getElementById('loading').classList.add('hidden');
-        updateUI();
-        detectPose();
-    } catch(err) {
-        document.getElementById('loading').innerHTML =
-            `<p style="color:#f87171">Error: ${err.message}</p>
-             <p style="color:#6b6b80;font-size:.85rem;margin-top:8px">Please allow camera access and refresh.</p>`;
-    }
-}
-
-// ─── Pose Loop ────────────────────────────────────────────────────────────────
-async function detectPose() {
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const poses = await detector.estimatePoses(canvas);
-
-    if (poses.length > 0) {
-        framesWithoutPose = 0;
-
-        const pose = poses[0];
-        landmarkHistory.push(pose.keypoints);
-        if (landmarkHistory.length > CONFIG.historySize) landmarkHistory.shift();
-        const smoothed = smoothLandmarks(landmarkHistory);
-        drawSkeleton(smoothed);
-
-        if (!sessionActive && !setupMode) verifySession(smoothed);
-        if (sessionActive) checkStage(smoothed);
-    } else {
-        framesWithoutPose++;
-        if (framesWithoutPose > CONFIG.poseLostThreshold && sessionActive) endSession();
-    }
-
-    const now = Date.now();
-    fps = Math.round(1000 / (now - lastTime));
-    lastTime = now;
-    document.getElementById('fps').textContent = fps;
-    document.getElementById('debugInfo').textContent = debugText;
-
-    requestAnimationFrame(detectPose);
-}
-
-// ─── Helpers: Pose Math ───────────────────────────────────────────────────────
-function smoothLandmarks(history) {
-    return Array.from({length:17}, (_,i) => {
-        let x=0, y=0, score=0;
-        history.forEach(f => { x += f[i].x; y += f[i].y; score += (f[i].score||0); });
-        return { x:x/history.length, y:y/history.length, score:score/history.length };
-    });
-}
-
-function calculateAngle(a, b, c) {
-    const rad = Math.atan2(c.y-b.y, c.x-b.x) - Math.atan2(a.y-b.y, a.x-b.x);
-    let angle = Math.abs(rad * 180 / Math.PI);
-    if (angle > 180) angle = 360 - angle;
-    return angle;
-}
-
-function chooseSide(kp) {
-    const lv = (kp[5].score||0)+(kp[11].score||0)+(kp[13].score||0);
-    const rv = (kp[6].score||0)+(kp[12].score||0)+(kp[14].score||0);
-    return lv > rv ? 'left' : 'right';
-}
-
-// ─── Draw ─────────────────────────────────────────────────────────────────────
-function drawSkeleton(kp) {
-    const edges = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],
-                   [11,13],[13,15],[12,14],[14,16]];
-    ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2.5;
-    edges.forEach(([s,e]) => {
-        if (kp[s].score > 0.3 && kp[e].score > 0.3) {
-            ctx.beginPath();
-            ctx.moveTo(kp[s].x, kp[s].y);
-            ctx.lineTo(kp[e].x, kp[e].y);
-            ctx.stroke();
-        }
-    });
-    kp.forEach(k => {
-        if (k.score > 0.3) {
-            ctx.fillStyle = '#34d399';
-            ctx.beginPath();
-            ctx.arc(k.x, k.y, 5, 0, 2*Math.PI);
-            ctx.fill();
-        }
-    });
-}
-
-// ─── Capture Outfit ───────────────────────────────────────────────────────────
-async function captureOutfit() {
-    const btn = document.querySelector('.btn-primary');
-    if (btn) btn.disabled = true;
-
-    // 5-second countdown overlay on canvas
-    for (let i = 5; i >= 1; i--) {
-        // Draw countdown number centred on canvas
-        const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        ctx.putImageData(snapshot, 0, 0);
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'white';
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.font = `bold ${Math.round(canvas.width * 0.2)}px DM Mono, monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(i, -canvas.width / 2, canvas.height / 2);
-        ctx.restore();
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        // Also update the button text
-        if (btn) btn.textContent = `📷 Capturing in ${i}…`;
-        await new Promise(r => setTimeout(r, 1000));
-    }
-
-    if (btn) btn.textContent = '📷 Capturing…';
-
-    const poses = await detector.estimatePoses(canvas);
-    if (!poses.length) {
-        if (btn) { btn.disabled = false; btn.textContent = '📷 Capture Outfit'; }
-        alert('No person detected. Stand in front of the camera.');
-        return;
-    }
-
-    // Take 5 frames and average for a more stable signature
-    const sigs = [];
-    for (let f = 0; f < 5; f++) {
-        const p = await detector.estimatePoses(canvas);
-        if (p.length) {
-            const s = buildOutfitSignature(p[0].keypoints);
-            if (s) sigs.push(s);
-        }
-        await new Promise(r => setTimeout(r, 80));
-    }
-
-    if (!sigs.length) {
-        if (btn) { btn.disabled = false; btn.textContent = '📷 Capture Outfit'; }
-        alert('Could not read torso region. Make sure your full body is visible.');
-        return;
-    }
-
-    // Average all captured signatures
-    const sig = sigs[0];
-    if (sigs.length > 1) {
-        for (let i = 1; i < sigs.length; i++) {
-            sig.hueHist.forEach((_, j) => sig.hueHist[j] = (sig.hueHist[j] + sigs[i].hueHist[j]) / 2);
-            sig.valHist.forEach((_, j) => sig.valHist[j] = (sig.valHist[j] + sigs[i].valHist[j]) / 2);
-            sig.satMean      = (sig.satMean      + sigs[i].satMean)      / 2;
-            sig.valMean      = (sig.valMean      + sigs[i].valMean)      / 2;
-            sig.neutralRatio = (sig.neutralRatio + sigs[i].neutralRatio) / 2;
-            if (sigs[i].heightRatio) sig.heightRatio = sig.heightRatio
-                ? (sig.heightRatio + sigs[i].heightRatio) / 2
-                : sigs[i].heightRatio;
-        }
-    }
-
-    authorizedOutfit = sig;
-    const toStore = { ...sig, hueHist: Array.from(sig.hueHist), valHist: Array.from(sig.valHist), heightRatio: sig.heightRatio ?? null };
-    localStorage.setItem('authorizedOutfitHSV', JSON.stringify(toStore));
-    setupMode = false;
-    lastVerifyResult = null;
-    updateUI();
-    updateOutfitPanel(sig);
-}
-
-// ─── Session Verification ─────────────────────────────────────────────────────
-function verifySession(kp) {
-    const side = chooseSide(kp);
-    const si = side === 'left'
-        ? { shoulder:5, hip:11, wrist:9, ankle:15 }
-        : { shoulder:6, hip:12, wrist:10, ankle:16 };
-    const sh = kp[si.shoulder], hp = kp[si.hip], wr = kp[si.wrist], an = kp[si.ankle];
-    const mountainOk = detectMountain(sh, hp, wr, an);
-
-    debugText = mountainOk ? 'Mountain ✓ — verifying outfit…' : 'Waiting for Mountain pose…';
-
-    if (!mountainOk) { setStatus('Stand in Mountain pose to begin', 'verifying'); return; }
-
-    const match = verifyOutfitHSV(kp);
-    if (match) {
-        sessionActive = true;
-        setStatus('Session Active', 'active');
-        updateUI();
-    } else {
-        const score = lastVerifyResult?.score ?? 0;
-        setStatus(`Outfit mismatch (${(score*100).toFixed(0)}% match)`, 'unauth');
-    }
-}
-
-// ─── Pose Detectors ───────────────────────────────────────────────────────────
-function detectMountain(sh, hp, wr, an) {
-    if (!sh||!hp||!wr||!an) return false;
-    if ([sh,hp,wr,an].some(k=>k.score<0.3)) return false;
-    return Math.abs(sh.y-hp.y)<180 && wr.y>sh.y-30 && an.y>hp.y-30;
-}
-function detectUpwardSalute(sh, wr, hp, kn, an, okn, oan) {
-    if (!sh||!wr||sh.score<0.3||wr.score<0.3) return false;
-    const armsUp = wr.y < sh.y-25;
-    // Both legs should be straight (knee angle > 160°)
-    const legStraight    = kn&&an&&hp&&kn.score>0.3&&an.score>0.3 ? calculateAngle(hp,kn,an) > 160 : true;
-    const oppLegStraight = okn&&oan&&okn.score>0.3&&oan.score>0.3 ? calculateAngle(hp,okn,oan) > 160 : true;
-    return armsUp && legStraight && oppLegStraight;
-}
-function detectForwardFold(sh, hp, wr, kn) {
-    if (!sh||!hp||!wr||!kn||[sh,hp,wr,kn].some(k=>k.score<0.3)) return false;
-    return sh.y>hp.y-50 && wr.y>kn.y-70;
-}
-function detectLunge(knAngle, hp, kn, an, sh, oan, okn, oka) {
-    if (!hp||!kn||!an||!sh||[hp,kn,an,sh].some(k=>k.score<0.3)) return false;
-    const bodyHorizontal = Math.abs(sh.y-hp.y)<120;
-    const backLegExtended = knAngle>100;
-    const lowerLegLevel = Math.abs(kn.y-an.y)<60;
-    // One ankle should be clearly in front of the other (x-axis separation)
-    const legsSpread = oan&&an && Math.abs(an.x - oan.x) > 80;
-    // Front knee should be more bent than back knee
-    const frontKneeBent = oka !== undefined ? oka < 140 : true;
-    return bodyHorizontal && backLegExtended && lowerLegLevel && legsSpread && frontKneeBent;
-}
-function detectPlank(sh, hp, kn, an, ok, oa, ka, oka) {
-    if (!sh||!hp||!kn||!an||!ok||!oa||[sh,hp,kn,an,ok,oa].some(k=>k.score<0.3)) return false;
-    return Math.abs(sh.y-hp.y)<100 && Math.abs(hp.y-kn.y)<100 &&
-           an.y>kn.y-20 && oa.y>ok.y-20 && ka>140 && oka>140;
-}
-function detectLowPlank(sh, hp, kn, wr, ok) {
-    if (!sh||!hp||!kn||!wr) return false;
-    if ([sh,hp,kn,wr].some(k=>k.score<0.3)) return false;
-    // Body stays roughly horizontal
-    const bodyFlat = Math.abs(sh.y-hp.y)<80;
-    // Elbows bent — wrists should be roughly level with or below shoulders
-    const elbowsBent = sh.y < wr.y + 50;
-    // Shoulders and knees must be lower (higher y) than they were in plank
-    const lowerThanPlank = plankSnapshot
-        ? sh.y > plankSnapshot.shY + 15 && kn.y > plankSnapshot.knY + 10
-        : true; // if no snapshot, skip this check
-    return bodyFlat && elbowsBent && lowerThanPlank;
-}
-function detectCobra(sh, hp, kn, wr) {
-    if (!sh||!hp||!kn||!wr||[sh,hp,kn,wr].some(k=>k.score<0.3)) return false;
-    return sh.y<hp.y-40 && hp.y>kn.y-100 && wr.y>sh.y-20;
-}
-function detectDownwardDog(sh, hp, kn, an, wr) {
-    if (!sh||!hp||!kn||!an||!wr||[sh,hp,kn,an,wr].some(k=>k.score<0.3)) return false;
-    return hp.y<sh.y-20 && wr.y>hp.y && an.y>hp.y;
-}
-
-// ─── Intruder Alert ──────────────────────────────────────────────────────────────
-function triggerIntruderAlert() {
-    if (intruderDetected) return;
-    intruderDetected = true;
-    holdCounter = 0;
-    // Keep sessionActive = true so the pose loop keeps running and can auto-resume
-
-    setStatus('⚠ Person mismatch — waiting for original person…', 'unauth');
-
-    // Update sidebar to show paused message with manual override option
-    const btns = document.getElementById('btnRow');
-    btns.innerHTML = `
-        <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:10px;padding:14px;margin-bottom:8px;font-size:.8rem;line-height:1.6;color:#f87171">
-            ⚠ The person in frame does not match the registered person.<br>
-            Counting paused — will resume automatically when the original person returns.
-        </div>
-        <button class="btn-danger" onclick="deleteOutfit()">✕ Reset & Recapture Outfit</button>`;
-
-    const score = lastVerifyResult?.score ?? 0;
-    updateOutfitScore(score, false, lastVerifyResult?.neutralMode ?? false);
-}
-
-function clearIntruderAlert() {
-    intruderDetected = false;
-    setStatus('Session Active', 'active');
-    updateUI();
-}
-
-// ─── Stage Check ──────────────────────────────────────────────────────────────
-function checkStage(kp) {
-    // Verify outfit every second
-    const nowMs = Date.now();
-    if (nowMs - lastVerifyTime >= 1000) {
-        lastVerifyTime = nowMs;
-        const match = verifyOutfitHSV(kp);
-        if (!match) {
-            if (!mismatchSince) mismatchSince = nowMs; // start the clock
-            if (nowMs - mismatchSince >= MISMATCH_GRACE_MS) {
-                triggerIntruderAlert();
+    <script>
+        const STAGES = ["Mountain","Upward Salute","Forward Fold","Lunge Left","Plank","Low Plank","Cobra","Downward Dog","Lunge Right","Forward Fold","Upward Salute","Mountain"];
+        const CONFIG = {
+            historySize: 5,
+            poseLostThreshold: 30,
+            stageCooldownMs: 100,  // 0.1 seconds
+            lockRadius: 400
+        };
+
+        let detector, video, canvas, ctx;
+        let sessionActive=false, stageIndex=0, counter=0, cooldownUntil=0;
+        let landmarkHistory=[], framesWithoutPose=0, lastTime=Date.now(), fps=0;
+        let debugText = "";
+
+        // Locked person anchor: set once when session starts
+        let lockedCenter = null;
+
+        async function init(){
+            try{
+                detector = await poseDetection.createDetector(
+                    poseDetection.SupportedModels.MoveNet,
+                    {modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING}
+                );
+                video  = document.getElementById('video');
+                canvas = document.getElementById('canvas');
+                ctx    = canvas.getContext('2d', {willReadFrequently: true});
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {width:1280, height:720, facingMode:'user'}
+                });
+                video.srcObject = stream;
+
+                await new Promise(resolve => {
+                    video.onloadedmetadata = () => {
+                        canvas.width  = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        resolve();
+                    };
+                });
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                updateUI();
+                detectPose();
+            } catch(err){
+                document.getElementById('loading').innerHTML =
+                    `<p style="color:#ef4444;">Error: ${err.message}</p><p>Please allow camera access and refresh.</p>`;
             }
-        } else {
-            mismatchSince = null; // reset streak on any match
-            if (intruderDetected) clearIntruderAlert();
         }
-    }
 
-    // If paused due to mismatch, draw overlay but don't advance poses
-    if (intruderDetected) {
-        ctx.fillStyle = 'rgba(239,68,68,0.5)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = `bold ${Math.round(canvas.width * 0.04)}px DM Mono, monospace`;
-        ctx.fillText('⚠ WRONG PERSON DETECTED', -canvas.width / 2, canvas.height / 2 - 24);
-        ctx.font = `${Math.round(canvas.width * 0.022)}px DM Mono, monospace`;
-        ctx.fillText('Counting paused — return to resume', -canvas.width / 2, canvas.height / 2 + 20);
-        ctx.restore();
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        return;
-    }
+        // Returns the average x/y of all high-confidence keypoints
+        function getBodyCenter(keypoints){
+            const visible = keypoints.filter(kp => kp.score > 0.3);
+            if(visible.length === 0) return null;
+            const x = visible.reduce((s, kp) => s + kp.x, 0) / visible.length;
+            const y = visible.reduce((s, kp) => s + kp.y, 0) / visible.length;
+            return {x, y};
+        }
 
-    const side = chooseSide(kp);
-    const I = side==='left'
-        ? {sh:5,el:7,hp:11,kn:13,an:15,wr:9,oh:12,ok:14,oa:16}
-        : {sh:6,el:8,hp:12,kn:14,an:16,wr:10,oh:11,ok:13,oa:15};
+        // Returns true if the detected pose belongs to the locked person
+        function isLockedPerson(keypoints){
+            if(!lockedCenter) return true; // not locked yet, always pass
+            const center = getBodyCenter(keypoints);
+            if(!center) return false;
+            const dist = Math.hypot(center.x - lockedCenter.x, center.y - lockedCenter.y);
+            return dist <= CONFIG.lockRadius;
+        }
 
-    const sh=kp[I.sh], el=kp[I.el], hp=kp[I.hp], kn=kp[I.kn],
-          an=kp[I.an], wr=kp[I.wr], oh=kp[I.oh], ok=kp[I.ok], oa=kp[I.oa];
-    const ka  = calculateAngle(hp, kn, an);
-    const oka = calculateAngle(oh, ok, oa);
-    const stage = STAGES[stageIndex];
-    let hit = false;
+        async function detectPose(){
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            ctx.restore();
+            const poses = await detector.estimatePoses(video);
 
-    debugText = `Stage: ${stage} (${stageIndex+1}/${STAGES.length})\nHold: ${holdCounter}/${CONFIG.holdFrames}\n`;
+            if(poses.length > 0){
+                const pose = poses[0];
 
-    switch (stage) {
-        case "Mountain":       hit = detectMountain(sh,hp,wr,an); break;
-        case "Upward Salute":  hit = detectUpwardSalute(sh,wr,hp,kn,an,ok,oa); break;
-        case "Forward Fold":   hit = detectForwardFold(sh,hp,wr,kn); break;
-        case "Lunge Left":
-        case "Lunge Right":    hit = detectLunge(ka,hp,kn,an,sh,oa,ok,oka); break;
-        case "Plank":          hit = detectPlank(sh,hp,kn,an,ok,oa,ka,oka);
-                               if (hit) plankSnapshot = { shY: sh.y, knY: kn.y }; break;
-        case "Low Plank":      hit = detectLowPlank(sh,hp,kn,wr,ok); break;
-        case "Cobra":          hit = detectCobra(sh,hp,kn,wr); break;
-        case "Downward Dog":   hit = detectDownwardDog(sh,hp,kn,an,wr); break;
-    }
+                if(sessionActive && !isLockedPerson(pose.keypoints)){
+                    // Wrong person in frame — freeze everything
+                    framesWithoutPose = 0;
+                    drawSkeleton(pose.keypoints); // still draw so they can see
+                    updateStatus('WRONG PERSON — MOVE BACK TO YOUR SPOT', 'intruder');
+                    debugText  = `⚠ Person lock broken!\n`;
+                    const c = getBodyCenter(pose.keypoints);
+                    if(c){
+                        const dist = Math.hypot(c.x - lockedCenter.x, c.y - lockedCenter.y);
+                        debugText += `Current center: (${c.x.toFixed(0)}, ${c.y.toFixed(0)})\n`;
+                        debugText += `Locked center:  (${lockedCenter.x.toFixed(0)}, ${lockedCenter.y.toFixed(0)})\n`;
+                        debugText += `Drift: ${dist.toFixed(0)}px (max ${CONFIG.lockRadius}px)`;
+                    }
+                } else {
+                    framesWithoutPose = 0;
+                    landmarkHistory.push(pose.keypoints);
+                    if(landmarkHistory.length > CONFIG.historySize) landmarkHistory.shift();
 
-    debugText += `Detected: ${hit}\nSide: ${side}`;
+                    const smoothed = smoothLandmarks(landmarkHistory);
+                    drawSkeleton(smoothed);
 
-    const pct = (holdCounter / CONFIG.holdFrames) * 100;
-    document.getElementById('holdFill').style.width = pct + '%';
-    document.getElementById('holdLabel').textContent =
-        hit ? `Hold ${holdCounter}/${CONFIG.holdFrames}` : '';
+                    if(!sessionActive) checkMountainStart(smoothed);
+                    else               checkStage(smoothed);
+                }
+            } else {
+                framesWithoutPose++;
+                if(framesWithoutPose > CONFIG.poseLostThreshold && sessionActive) endSession();
+            }
 
-    if (hit) {
-        holdCounter++;
-        if (holdCounter >= CONFIG.holdFrames) {
-            stageIndex++;
-            if (stageIndex >= STAGES.length) { counter++; stageIndex = 0; }
-            holdCounter = 0;
+            const now = Date.now();
+            fps = Math.round(1000 / (now - lastTime));
+            lastTime = now;
+            document.getElementById('fps').textContent = fps;
+            document.getElementById('debugInfo').textContent = debugText;
+            requestAnimationFrame(detectPose);
+        }
+
+        function smoothLandmarks(history){
+            const smoothed = [];
+            for(let i = 0; i < 17; i++){
+                let x=0, y=0, score=0;
+                history.forEach(f => { x+=f[i].x; y+=f[i].y; score+=f[i].score||0; });
+                smoothed.push({x:x/history.length, y:y/history.length, score:score/history.length});
+            }
+            return smoothed;
+        }
+
+        function drawSkeleton(kp){
+            // Mirror X coords to match flipped video
+            const mx = p => canvas.width - p.x;
+            const conn = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
+            ctx.strokeStyle = '#00FF00'; ctx.lineWidth = 3;
+            conn.forEach(([s,e]) => {
+                if(kp[s].score>0.3 && kp[e].score>0.3){
+                    ctx.beginPath(); ctx.moveTo(mx(kp[s]),kp[s].y); ctx.lineTo(mx(kp[e]),kp[e].y); ctx.stroke();
+                }
+            });
+            kp.forEach(p => {
+                if(p.score>0.3){
+                    ctx.fillStyle='#FF0000'; ctx.beginPath(); ctx.arc(mx(p),p.y,5,0,2*Math.PI); ctx.fill();
+                }
+            });
+        }
+
+        function checkMountainStart(keypoints){
+            const side = chooseSide(keypoints);
+            const [sh, hip, wr, ank] = side==='left'
+                ? [keypoints[5],keypoints[11],keypoints[9], keypoints[15]]
+                : [keypoints[6],keypoints[12],keypoints[10],keypoints[16]];
+
+            const detected = detectMountain(sh, hip, wr, ank);
+            debugText  = `Waiting for Mountain Pose\n`;
+            debugText += `Upright: ${Math.abs(sh.y-hip.y).toFixed(0)} < 180 ? ${Math.abs(sh.y-hip.y)<180}\n`;
+            debugText += `Wrist in zone: ${wr.y.toFixed(0)} between ${sh.y.toFixed(0)} and ${hip.y.toFixed(0)} ? ${wr.y > sh.y - 40 && wr.y < hip.y + 40}\n`;
+            debugText += `Standing: ${(ank.y-hip.y).toFixed(0)} > -30 ? ${ank.y>hip.y-30}\n`;
+            debugText += `Mountain: ${detected}`;
+
+            if(detected){
+                // Lock onto this person's position
+                lockedCenter = getBodyCenter(keypoints);
+                sessionActive = true;
+                cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
+                updateStatus('SESSION ACTIVE', 'active');
+                updateUI();
+            } else {
+                updateStatus('STAND IN MOUNTAIN POSE TO START', 'waiting');
+            }
+        }
+
+        function chooseSide(kp){
+            const l = (kp[5].score||0)+(kp[11].score||0)+(kp[13].score||0);
+            const r = (kp[6].score||0)+(kp[12].score||0)+(kp[14].score||0);
+            return l > r ? 'left' : 'right';
+        }
+
+        function angle(a,b,c){
+            let deg = Math.abs(Math.atan2(c.y-b.y,c.x-b.x) - Math.atan2(a.y-b.y,a.x-b.x)) * 180/Math.PI;
+            return deg > 180 ? 360-deg : deg;
+        }
+
+        function detectMountain(sh, hip, wr, ank){
+            if(!sh||!hip||!wr||!ank) return false;
+            if(sh.score<0.3||hip.score<0.3||wr.score<0.3||ank.score<0.3) return false;
+            const upright     = Math.abs(sh.y-hip.y)<180;
+            const standing    = ank.y>hip.y-30;
+            const wristInZone = wr.y > sh.y - 40 && wr.y < hip.y + 40;
+            return upright && standing && wristInZone;
+        }
+        function detectUpwardSalute(sh, wr){
+            if(!sh||!wr||sh.score<0.3||wr.score<0.3) return false;
+            return wr.y < sh.y;
+        }
+        function detectForwardFold(sh, hip, wr, kn, ank, oAnk){
+            if(!sh||!hip||!wr||!kn||!ank||!oAnk) return false;
+            if(sh.score<0.3||hip.score<0.3||wr.score<0.3||kn.score<0.3) return false;
+            if(ank.score<0.3||oAnk.score<0.3) return false;
+            // Angle between torso (hip->shoulder) and upper leg (hip->knee)
+            const torsoVec  = {x: sh.x - hip.x,  y: sh.y - hip.y};
+            const legVec    = {x: kn.x - hip.x,  y: kn.y - hip.y};
+            const dot       = torsoVec.x*legVec.x + torsoVec.y*legVec.y;
+            const magTorso  = Math.hypot(torsoVec.x, torsoVec.y);
+            const magLeg    = Math.hypot(legVec.x,   legVec.y);
+            const foldAngle = Math.acos(Math.max(-1, Math.min(1, dot / (magTorso * magLeg)))) * 180 / Math.PI;
+            // Both ankles close to wrist X (hands reaching down to feet)
+            const ankleNearWrist = Math.abs(ank.x - wr.x) < 80 && Math.abs(oAnk.x - wr.x) < 80;
+            return foldAngle < 100 && ankleNearWrist;
+        }
+        function detectLunge(kneeAng, hip, kn, ank, sh, oAnk){
+            if(!hip||!kn||!ank||!sh||!oAnk) return false;
+            if(hip.score<0.3||kn.score<0.3||ank.score<0.3||sh.score<0.3||oAnk.score<0.3) return false;
+            // One ankle significantly further back than the other (staggered feet)
+            const feetStaggered = Math.abs(ank.x - oAnk.x) > 80;
+            return Math.abs(sh.y-hip.y)<200 && kneeAng>100 && feetStaggered;
+        }
+        function detectPlank(sh, hip, kn, ank, oppKn, oppAnk, knAng, oppAng){
+            if(!sh||!hip||!kn||!ank||!oppKn||!oppAnk) return false;
+            if(sh.score<0.3||hip.score<0.3||kn.score<0.3||ank.score<0.3) return false;
+            if(oppKn.score<0.3||oppAnk.score<0.3) return false;
+            return Math.abs(sh.y-hip.y)<100 && Math.abs(hip.y-kn.y)<100
+                && ank.y>kn.y-20 && oppAnk.y>oppKn.y-20
+                && knAng>140 && oppAng>140;
+        }
+        function detectLowPlank(sh, hip, kn, wr){
+            if(!sh||!hip||!kn||!wr) return false;
+            if(sh.score<0.3||hip.score<0.3||kn.score<0.3||wr.score<0.3) return false;
+            const waistAtWrist = Math.abs(hip.y - wr.y) < 60;
+            const kneesAtWrist = Math.abs(kn.y  - wr.y) < 80;
+            return waistAtWrist && kneesAtWrist;
+        }
+        function detectCobra(sh, hip, kn, wr){
+            if(!sh||!hip||!kn||!wr) return false;
+            if(sh.score<0.3||hip.score<0.3||kn.score<0.3||wr.score<0.3) return false;
+            return sh.y<hip.y-40 && hip.y>kn.y-100 && wr.y>sh.y-20;
+        }
+        function detectDownwardDog(sh, hip, kn, ank, wr){
+            if(!sh||!hip||!kn||!ank||!wr) return false;
+            if(sh.score<0.3||hip.score<0.3||kn.score<0.3||ank.score<0.3||wr.score<0.3) return false;
+            return hip.y<sh.y-20 && wr.y>hip.y && ank.y>hip.y;
+        }
+
+        function checkPoseByName(name, keypoints, knAng, oppAng, sh, el, hip, kn, ank, wr, oHip, oKn, oAnk){
+            switch(name){
+                case "Mountain":       return detectMountain(sh, hip, wr, ank);
+                case "Upward Salute":  return detectUpwardSalute(sh, wr);
+                case "Forward Fold":   return detectForwardFold(sh, hip, wr, kn, ank, oAnk);
+                case "Lunge Left":
+                case "Lunge Right":    return detectLunge(knAng, hip, kn, ank, sh, oAnk);
+                case "Plank":          return detectPlank(sh, hip, kn, ank, oKn, oAnk, knAng, oppAng);
+                case "Low Plank":      return detectLowPlank(sh, hip, kn, wr);
+                case "Cobra":          return detectCobra(sh, hip, kn, wr);
+                case "Downward Dog":   return detectDownwardDog(sh, hip, kn, ank, wr);
+                default:               return false;
+            }
+        }
+
+        function checkStage(keypoints){
+            if(performance.now() < cooldownUntil){
+                debugText  = `Stage: ${STAGES[stageIndex]} (${stageIndex+1}/${STAGES.length})\n`;
+                debugText += `Cooldown: ${(cooldownUntil - performance.now()).toFixed(0)}ms remaining\n`;
+                debugText += `(Move into next pose)`;
+                document.getElementById('holdIndicator').classList.add('hidden');
+                return;
+            }
+
+            const side = chooseSide(keypoints);
+            const idx = side==='left'
+                ? {sh:5, el:7, hip:11, kn:13, ank:15, wr:9,  oHip:12, oKn:14, oAnk:16}
+                : {sh:6, el:8, hip:12, kn:14, ank:16, wr:10, oHip:11, oKn:13, oAnk:15};
+
+            const sh   = keypoints[idx.sh];
+            const el   = keypoints[idx.el];
+            const hip  = keypoints[idx.hip];
+            const kn   = keypoints[idx.kn];
+            const ank  = keypoints[idx.ank];
+            const wr   = keypoints[idx.wr];
+            const oHip = keypoints[idx.oHip];
+            const oKn  = keypoints[idx.oKn];
+            const oAnk = keypoints[idx.oAnk];
+
+            const stage   = STAGES[stageIndex];
+            const knAng   = angle(hip, kn,  ank);
+            const oppAng  = angle(oHip, oKn, oAnk);
+
+            let detected = false;
+
+            debugText  = `Stage: ${stage} (${stageIndex+1}/${STAGES.length})\n`;
+            debugText += `Side: ${side}\n`;
+
+            switch(stage){
+                case "Mountain":
+                    detected = detectMountain(sh, hip, wr, ank);
+                    debugText += `Upright: ${Math.abs(sh.y-hip.y)<180}\n`;
+                    debugText += `Wrist in zone: ${wr.y > sh.y - 40 && wr.y < hip.y + 40}\n`;
+                    debugText += `Standing: ${ank.y>hip.y-30}\n`;
+                    debugText += `Mountain: ${detected}`;
+                    break;
+                case "Upward Salute":
+                    detected = detectUpwardSalute(sh, wr);
+                    debugText += `Arms raised: ${wr.y<sh.y}\n`;
+                    debugText += `Upward Salute: ${detected}`;
+                    break;
+                case "Forward Fold":
+                    detected = detectForwardFold(sh, hip, wr, kn, ank, oAnk);
+                    const torsoV = {x: sh.x-hip.x, y: sh.y-hip.y};
+                    const legV   = {x: kn.x-hip.x, y: kn.y-hip.y};
+                    const ffDot  = torsoV.x*legV.x + torsoV.y*legV.y;
+                    const ffAng  = Math.acos(Math.max(-1,Math.min(1, ffDot/(Math.hypot(torsoV.x,torsoV.y)*Math.hypot(legV.x,legV.y))))) * 180/Math.PI;
+                    debugText += `Torso-leg angle: ${ffAng.toFixed(1)}° (< 100°?): ${ffAng < 100}\n`;
+                    debugText += `Ankle-Wrist X diff (near): ${Math.abs(ank.x-wr.x).toFixed(0)}px (< 80?): ${Math.abs(ank.x-wr.x) < 80}\n`;
+                    debugText += `Ankle-Wrist X diff (far):  ${Math.abs(oAnk.x-wr.x).toFixed(0)}px (< 80?): ${Math.abs(oAnk.x-wr.x) < 80}\n`;
+                    debugText += `Forward Fold: ${detected}`;
+                    break;
+                case "Lunge Left":
+                case "Lunge Right":
+                    detected = detectLunge(knAng, hip, kn, ank, sh, oAnk);
+                    debugText += `Shoulder-Hip: ${Math.abs(sh.y-hip.y).toFixed(0)}px (<200?)\n`;
+                    debugText += `Back leg angle: ${knAng.toFixed(1)}°\n`;
+                    debugText += `Ankle X diff: ${Math.abs(ank.x-oAnk.x).toFixed(0)}px (>80?): ${Math.abs(ank.x-oAnk.x)>80}\n`;
+                    debugText += `Lunge: ${detected}`;
+                    break;
+                case "Plank":
+                    detected = detectPlank(sh, hip, kn, ank, oKn, oAnk, knAng, oppAng);
+                    debugText += `Back level: ${Math.abs(sh.y-hip.y)<100}\n`;
+                    debugText += `Body straight: ${Math.abs(hip.y-kn.y)<100}\n`;
+                    debugText += `Leg angles: ${knAng.toFixed(0)}°, ${oppAng.toFixed(0)}°\n`;
+                    debugText += `Plank: ${detected}`;
+                    break;
+                case "Low Plank":
+                    detected = detectLowPlank(sh, hip, kn, wr);
+                    debugText += `Waist-Wrist diff: ${Math.abs(hip.y-wr.y).toFixed(0)}px (< 60?): ${Math.abs(hip.y-wr.y)<60}\n`;
+                    debugText += `Knee-Wrist diff: ${Math.abs(kn.y-wr.y).toFixed(0)}px (< 80?): ${Math.abs(kn.y-wr.y)<80}\n`;
+                    debugText += `Low Plank: ${detected}`;
+                    break;
+                case "Cobra":
+                    detected = detectCobra(sh, hip, kn, wr);
+                    debugText += `Shoulder-Hip diff: ${(hip.y-sh.y).toFixed(0)}px\n`;
+                    debugText += `Chest up (>40px): ${sh.y<hip.y-40}\n`;
+                    debugText += `Cobra: ${detected}`;
+                    break;
+                case "Downward Dog":
+                    detected = detectDownwardDog(sh, hip, kn, ank, wr);
+                    debugText += `Hip-Shoulder: ${(sh.y-hip.y).toFixed(0)}px\n`;
+                    debugText += `Wrists below hips: ${wr.y>hip.y}\n`;
+                    debugText += `Ankles below hips: ${ank.y>hip.y}\n`;
+                    debugText += `Downward Dog: ${detected}`;
+                    break;
+            }
+
+            // Update locked center gradually as person moves through poses
+            const currentCenter = getBodyCenter(keypoints);
+            if(currentCenter) lockedCenter = currentCenter;
+
+            document.getElementById('holdIndicator').classList.add('hidden');
+
+            if(detected){
+                stageIndex++;
+                if(stageIndex >= STAGES.length){ counter++; stageIndex = 0; }
+                cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
+                updateUI();
+            } else {
+                // Skip-forward: if current pose not seen but next one is, advance two stages
+                const nextIndex = (stageIndex + 1) % STAGES.length;
+                const nextDetected = checkPoseByName(STAGES[nextIndex], keypoints, knAng, oppAng, sh, el, hip, kn, ank, wr, oHip, oKn, oAnk);
+                if(nextDetected){
+                    debugText += `\n⏭ Skipped to next pose`;
+                    stageIndex += 2;
+                    if(stageIndex >= STAGES.length){ counter++; stageIndex = stageIndex % STAGES.length; }
+                    cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
+                    updateUI();
+                }
+            }
+        }
+
+        function updateStatus(text, type){
+            const bar = document.getElementById('statusBar');
+            bar.textContent = text;
+            bar.className = 'status-bar status-' + type;
+        }
+
+        function updateUI(){
+            const controls = document.getElementById('controls');
+            const stats    = document.getElementById('stats');
+            controls.innerHTML = '';
+
+            if(sessionActive){
+                updateStatus('SESSION ACTIVE', 'active');
+                controls.innerHTML = `
+                    <button class="btn-reset"  onclick="reset()">🔄 Reset</button>
+                    <button class="btn-relock" onclick="relockPerson()">📍 Re-lock Person</button>
+                    <button class="btn-end"    onclick="endSession()">⏹️ End Session</button>
+                `;
+                stats.classList.remove('hidden');
+                stats.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-label">Total Reps</div>
+                        <div class="stat-value">${counter}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Current Stage</div>
+                        <div class="stat-value" style="font-size:1.8rem;">${STAGES[stageIndex]}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Progress</div>
+                        <div class="stat-value">${stageIndex+1}/${STAGES.length}</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width:${(stageIndex/STAGES.length)*100}%"></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                updateStatus('STAND IN MOUNTAIN POSE TO START', 'waiting');
+                stats.classList.add('hidden');
+            }
+        }
+
+        function reset(){
+            stageIndex = 0; cooldownUntil = 0;
             updateUI();
         }
-    } else {
-        holdCounter = Math.max(0, holdCounter - 1);
-    }
-}
 
-// ─── UI Updates ───────────────────────────────────────────────────────────────
-function setStatus(text, type) {
-    document.getElementById('statusText').textContent = text;
-    document.getElementById('statusDot').className = 'status-dot dot-' + type;
-}
-
-function updateOutfitPanel(sig) {
-    const el = document.getElementById('outfitContent');
-    if (!sig) {
-        el.innerHTML = `<div style="color:var(--muted);font-size:.8rem">No outfit captured yet.</div>`;
-        return;
-    }
-    el.innerHTML = `
-        <div class="ai-outfit-panel">
-            <div style="font-size:.75rem;color:var(--accent2)">✓ Outfit captured</div>
-            <div class="ai-verify-result" id="verifyResult">
-                <span class="verify-badge verify-thinking">—</span>
-                <span style="color:var(--muted);font-size:.73rem">Not yet checked</span>
-            </div>
-        </div>`;
-}
-
-function updateOutfitScore(score, match, neutralMode) {
-    const el = document.getElementById('verifyResult');
-    if (!el) return;
-    const pct = (score * 100).toFixed(0);
-    const cls  = match ? 'verify-match' : 'verify-no-match';
-    const icon = match ? `✓ Match` : `✗ No match`;
-    el.innerHTML = `<span class="verify-badge ${cls}">${icon}</span>
-        <span style="color:var(--muted);font-size:.73rem">${pct}% — ${neutralMode?'neutral':'hue'} mode</span>`;
-}
-
-function updateUI() {
-    const btns = document.getElementById('btnRow');
-    btns.innerHTML = '';
-
-    if (setupMode) {
-        setStatus('Setup — capture your outfit', 'setup');
-        btns.innerHTML = `<button class="btn-primary" onclick="captureOutfit()">📷 Capture Outfit</button>`;
-        updateOutfitPanel(null);
-    } else if (sessionActive) {
-        setStatus('Session Active', 'active');
-        btns.innerHTML = `
-            <button class="btn-secondary" onclick="resetSession()">↺ Reset Stage</button>
-            <button class="btn-secondary" onclick="endSession()">⏹ End Session</button>
-            <button class="btn-danger"    onclick="deleteOutfit()">✕ Delete Outfit</button>`;
-        document.getElementById('counterVal').textContent = counter;
-        document.getElementById('stageName').textContent = STAGES[stageIndex];
-        const pips = document.getElementById('progressPips');
-        pips.innerHTML = STAGES.map((_,i) =>
-            `<div class="progress-pip ${i < stageIndex ? 'done' : i === stageIndex ? 'current' : ''}"></div>`
-        ).join('');
-        if (authorizedOutfit && !document.getElementById('verifyResult')) {
-            updateOutfitPanel(authorizedOutfit);
+        function endSession(){
+            sessionActive = false; stageIndex = 0; cooldownUntil = 0;
+            lockedCenter = null;
+            updateUI();
         }
-    } else {
-        setStatus('Stand in Mountain pose', 'verifying');
-        btns.innerHTML = `<button class="btn-danger" onclick="deleteOutfit()">✕ Delete Outfit</button>`;
-        if (authorizedOutfit) updateOutfitPanel(authorizedOutfit);
-    }
-}
 
-function resetSession()  { stageIndex = 0; holdCounter = 0; plankSnapshot = null; mismatchSince = null; updateUI(); }
-function endSession()    { sessionActive = false; resetSession(); }
-function deleteOutfit()  {
-    localStorage.removeItem('authorizedOutfitHSV');
-    authorizedOutfit = null;
-    setupMode = true;
-    sessionActive = false;
-    lastVerifyResult = null;
-    lastVerifyTime = 0;
-    updateUI();
-}
+        function relockPerson(){
+            // Find the latest smoothed keypoints from history and re-lock center
+            if(landmarkHistory.length > 0){
+                const smoothed = smoothLandmarks(landmarkHistory);
+                const center   = getBodyCenter(smoothed);
+                if(center){
+                    lockedCenter = center;
+                    updateStatus('RE-LOCKED TO CURRENT POSITION', 'active');
+                    setTimeout(() => updateStatus('SESSION ACTIVE', 'active'), 1500);
+                }
+            }
+        }
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
-init();
-</script>
+        init();
+    </script>
 </body>
