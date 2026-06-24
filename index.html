@@ -222,7 +222,7 @@
 
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>Loading...</p>
+            <p>Loading AI models...</p>
         </div>
 
         <div id="app" class="hidden">
@@ -598,8 +598,8 @@
                 if(stageIndex >= STAGES.length){ counter++; stageIndex = 0; }
                 cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
                 updateUI();
-            } else if(STAGES[stageIndex] === "Lunge"){
-                // Only exception: if person skips Lunge and goes straight to Plank, allow it
+            } else if(STAGES[stageIndex] === "Lunge" && STAGES[stageIndex + 1] === "Plank"){
+                // Only skip Lunge → Plank when Plank is the immediately next stage
                 const plankDetected = detectPlank(sh, hip, kn, ank, oKn, oAnk, knAng, oppAng);
                 if(plankDetected){
                     stageIndex++; // skip Lunge
