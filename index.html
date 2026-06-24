@@ -495,7 +495,9 @@
         function detectDownwardDog(sh, hip, kn, ank, wr){
             if(!sh||!hip||!kn||!ank||!wr) return false;
             if(sh.score<0.3||hip.score<0.3||kn.score<0.3||ank.score<0.3||wr.score<0.3) return false;
-            return hip.y<sh.y-20 && wr.y>hip.y && ank.y>hip.y;
+            const hipAngle = angle(sh, hip, kn);
+            const goodHipAngle = hipAngle >= 60 && hipAngle <= 120;
+            return hip.y<sh.y-20 && wr.y>hip.y && ank.y>hip.y && goodHipAngle;
         }
 
         function checkStage(keypoints){
@@ -584,9 +586,10 @@
                     break;
                 case "Downward Dog":
                     detected = detectDownwardDog(sh, hip, kn, ank, wr);
-                    debugText += `Hip-Shoulder: ${(sh.y-hip.y).toFixed(0)}px\n`;
+                    debugText += `Hip above shoulder: ${hip.y<sh.y-20}\n`;
                     debugText += `Wrists below hips: ${wr.y>hip.y}\n`;
                     debugText += `Ankles below hips: ${ank.y>hip.y}\n`;
+                    debugText += `Hip angle: ${angle(sh,hip,kn).toFixed(1)}° (60–120?): ${angle(sh,hip,kn)>=60&&angle(sh,hip,kn)<=120}\n`;
                     debugText += `Downward Dog: ${detected}`;
                     break;
             }
