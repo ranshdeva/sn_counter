@@ -487,10 +487,15 @@
             const kneesAtWrist = Math.abs(kn.y  - wr.y) < 80;
             return waistAtWrist && kneesAtWrist;
         }
-        function detectCobra(sh, hip, kn, wr){
-            if(!sh||!hip||!kn||!wr) return false;
-            if(sh.score<0.3||hip.score<0.3||kn.score<0.3||wr.score<0.3) return false;
-            return sh.y<hip.y-40 && hip.y>kn.y-100 && wr.y>sh.y-20;
+        function detectCobra(sh, hip, kn, wr, ank){
+            if(!sh||!hip||!kn||!wr||!ank) return false;
+            if(sh.score<0.3||hip.score<0.3||kn.score<0.3||wr.score<0.3||ank.score<0.3) return false;
+            // Hip, knee, ankle all at roughly the same Y (flat on the ground)
+            const hipKneeLine  = Math.abs(hip.y - kn.y)  < 60;
+            const kneeAnkleLine = Math.abs(kn.y  - ank.y) < 60;
+            // Shoulders clearly above hips (chest lifted)
+            const shouldersUp  = sh.y < hip.y - 40;
+            return hipKneeLine && kneeAnkleLine && shouldersUp;
         }
         function detectDownwardDog(sh, hip, kn, ank, wr){
             if(!sh||!hip||!kn||!ank||!wr) return false;
