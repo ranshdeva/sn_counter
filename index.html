@@ -459,8 +459,11 @@
             const magTorso  = Math.hypot(torsoVec.x, torsoVec.y);
             const magLeg    = Math.hypot(legVec.x,   legVec.y);
             const foldAngle = Math.acos(Math.max(-1, Math.min(1, dot / (magTorso * magLeg)))) * 180 / Math.PI;
-            const ankleNearWrist = Math.abs(ank.x - wr.x) < 80 && Math.abs(oAnk.x - wr.x) < 80;
-            return foldAngle < 100 && ankleNearWrist;
+            // Wrist Y should be at or between knee Y and ankle Y (hands near shins/feet)
+            const minY = Math.min(kn.y, ank.y);
+            const maxY = Math.max(kn.y, ank.y);
+            const wristNearLegs = wr.y >= minY - 40 && wr.y <= maxY + 40;
+            return foldAngle < 100 && wristNearLegs;
         }
         function detectLunge(kneeAng, hip, kn, ank, sh, oAnk){
             if(!hip||!kn||!ank||!sh||!oAnk) return false;
@@ -557,9 +560,10 @@
                     const legV   = {x: kn.x-hip.x, y: kn.y-hip.y};
                     const ffDot  = torsoV.x*legV.x + torsoV.y*legV.y;
                     const ffAng  = Math.acos(Math.max(-1,Math.min(1, ffDot/(Math.hypot(torsoV.x,torsoV.y)*Math.hypot(legV.x,legV.y))))) * 180/Math.PI;
+                    const ffMinY = Math.min(kn.y, ank.y);
+                    const ffMaxY = Math.max(kn.y, ank.y);
                     debugText += `Torso-leg angle: ${ffAng.toFixed(1)}° (< 100°?): ${ffAng < 100}\n`;
-                    debugText += `Ankle-Wrist X diff (near): ${Math.abs(ank.x-wr.x).toFixed(0)}px (< 80?): ${Math.abs(ank.x-wr.x) < 80}\n`;
-                    debugText += `Ankle-Wrist X diff (far):  ${Math.abs(oAnk.x-wr.x).toFixed(0)}px (< 80?): ${Math.abs(oAnk.x-wr.x) < 80}\n`;
+                    debugText += `Wrist Y: ${wr.y.toFixed(0)} in [${(ffMinY-40).toFixed(0)}–${(ffMaxY+40).toFixed(0)}]?: ${wr.y>=ffMinY-40&&wr.y<=ffMaxY+40}\n`;
                     debugText += `Forward Fold: ${detected}`;
                     break;
                 case "Lunge":
@@ -584,9 +588,10 @@
                     debugText += `Low Plank: ${detected}`;
                     break;
                 case "Cobra":
-                    detected = detectCobra(sh, hip, kn, wr);
-                    debugText += `Shoulder-Hip diff: ${(hip.y-sh.y).toFixed(0)}px\n`;
-                    debugText += `Chest up (>40px): ${sh.y<hip.y-40}\n`;
+                    detected = detectCobra(sh, hip, kn, wr, ank);
+                    debugText += `Hip-Knee level: ${Math.abs(hip.y-kn.y).toFixed(0)}px (< 60?): ${Math.abs(hip.y-kn.y)<60}\n`;
+                    debugText += `Knee-Ankle level: ${Math.abs(kn.y-ank.y).toFixed(0)}px (< 60?): ${Math.abs(kn.y-ank.y)<60}\n`;
+                    debugText += `Shoulders up: ${(hip.y-sh.y).toFixed(0)}px above hip (> 40?): ${sh.y<hip.y-40}\n`;
                     debugText += `Cobra: ${detected}`;
                     break;
                 case "Downward Dog":
