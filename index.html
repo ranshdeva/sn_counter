@@ -150,6 +150,50 @@
         }
         @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
         .hidden { display: none; }
+        .btn-rules { background: #14b8a6; color: white; }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .modal h2 {
+            font-size: 1.4rem;
+            color: #1f2937;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .modal ol {
+            padding-left: 22px;
+            color: #374151;
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+        .modal ol li { margin-bottom: 8px; }
+        .modal-close {
+            display: block;
+            margin: 24px auto 0;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 32px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
         @media (max-width: 600px) {
             .video-container { border-radius: 12px; margin-bottom: 12px; }
             .stats { gap: 10px; }
@@ -160,11 +204,25 @@
 </head>
 <body>
     <div class="container">
-        <h1>🧘 Ransh's Sun Salutation Counter</h1>
+        <h1>🧘 Sun Salutation Counter</h1>
+
+        <div id="rulesModal" class="modal-overlay">
+            <div class="modal">
+                <h2>📋 How to Use</h2>
+                <ol>
+                    <li>Stand in the <strong>middle of the screen</strong> — the app tracks whoever is closest to the center line.</li>
+                    <li>Make sure your <strong>full body is visible</strong> at all times, including hands, feet, and head.</li>
+                    <li>Stand in <strong>Mountain Pose</strong> to begin counting automatically.</li>
+                    <li>Move through each pose of the Sun Salutation sequence at your own pace.</li>
+                    <li>If others are nearby, they will be ignored as long as you stay centered.</li>
+                </ol>
+                <button class="modal-close" onclick="closeRules()">Got it!</button>
+            </div>
+        </div>
 
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>Loading AI models...</p>
+            <p>Loading...</p>
         </div>
 
         <div id="app" class="hidden">
@@ -183,12 +241,13 @@
     </div>
 
     <script>
-        const STAGES = ["Mountain","Upward Salute","Forward Fold","Lunge Left","Plank","Low Plank","Cobra","Downward Dog","Lunge Right","Forward Fold","Upward Salute","Mountain"];
+        const STAGES = ["Mountain","Upward Salute","Forward Fold","Lunge","Plank","Low Plank","Cobra","Downward Dog","Lunge","Forward Fold","Upward Salute","Mountain"];
         const CONFIG = {
-            historySize: 5,
+            historySize: 1,
             poseLostThreshold: 30,
             stageCooldownMs: 100,  // 0.1 seconds
-            lockRadius: 400
+            lockRadius: 400,
+            minPersonScore: 0.25   // confidence needed to count as "a real person" when scanning the frame
         };
 
         let detector, video, canvas, ctx;
@@ -196,14 +255,20 @@
         let landmarkHistory=[], framesWithoutPose=0, lastTime=Date.now(), fps=0;
         let debugText = "";
 
-        // Locked person anchor: set once when session starts
+        // Locked person anchor: no longer used — detection always picks closest to center line
         let lockedCenter = null;
 
         async function init(){
             try{
                 detector = await poseDetection.createDetector(
                     poseDetection.SupportedModels.MoveNet,
-                    {modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING}
+                    {
+                        // Multi-person model: sees every person in frame separately
+                        // instead of blending/guessing like the single-pose model did
+                        modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
+                        enableTracking: true,
+                        trackerType: poseDetection.TrackerType.BoundingBox
+                    }
                 );
                 video  = document.getElementById('video');
                 canvas = document.getElementById('canvas');
@@ -232,7 +297,7 @@
             }
         }
 
-        // Returns the average x/y of all high-confidence keypoints
+        // Returns the average x/y of all high-confidence keypoints for one person
         function getBodyCenter(keypoints){
             const visible = keypoints.filter(kp => kp.score > 0.3);
             if(visible.length === 0) return null;
@@ -241,13 +306,39 @@
             return {x, y};
         }
 
-        // Returns true if the detected pose belongs to the locked person
-        function isLockedPerson(keypoints){
-            if(!lockedCenter) return true; // not locked yet, always pass
-            const center = getBodyCenter(keypoints);
-            if(!center) return false;
-            const dist = Math.hypot(center.x - lockedCenter.x, center.y - lockedCenter.y);
-            return dist <= CONFIG.lockRadius;
+        // Is this a real, confidently-detected person (vs. a low-confidence ghost detection)?
+        function isPoseConfident(pose){
+            if(typeof pose.score === 'number') return pose.score > CONFIG.minPersonScore;
+            return getBodyCenter(pose.keypoints) !== null;
+        }
+
+        // Pick the person whose center X is closest to the middle of the frame
+        function findClosestToCenter(poses){
+            const midX = canvas.width / 2;
+            let best = null, bestDist = Infinity;
+            poses.forEach(p => {
+                if(!isPoseConfident(p)) return;
+                const center = getBodyCenter(p.keypoints);
+                if(!center) return;
+                const dist = Math.abs(center.x - midX);
+                if(dist < bestDist){ bestDist = dist; best = p; }
+            });
+            return best;
+        }
+
+        // Draw the translucent center guide line
+        function drawCenterLine(){
+            const midX = canvas.width / 2;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([12, 8]);
+            ctx.beginPath();
+            ctx.moveTo(midX, 0);
+            ctx.lineTo(midX, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
         }
 
         async function detectPose(){
@@ -255,35 +346,23 @@
             ctx.scale(-1, 1);
             ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
             ctx.restore();
+
+            drawCenterLine();
+
             const poses = await detector.estimatePoses(video);
 
-            if(poses.length > 0){
-                const pose = poses[0];
+            // Always track the person closest to the center vertical line
+            const chosen = findClosestToCenter(poses);
 
-                if(sessionActive && !isLockedPerson(pose.keypoints)){
-                    // Wrong person in frame — freeze everything
-                    framesWithoutPose = 0;
-                    drawSkeleton(pose.keypoints); // still draw so they can see
-                    updateStatus('WRONG PERSON — MOVE BACK TO YOUR SPOT', 'intruder');
-                    debugText  = `⚠ Person lock broken!\n`;
-                    const c = getBodyCenter(pose.keypoints);
-                    if(c){
-                        const dist = Math.hypot(c.x - lockedCenter.x, c.y - lockedCenter.y);
-                        debugText += `Current center: (${c.x.toFixed(0)}, ${c.y.toFixed(0)})\n`;
-                        debugText += `Locked center:  (${lockedCenter.x.toFixed(0)}, ${lockedCenter.y.toFixed(0)})\n`;
-                        debugText += `Drift: ${dist.toFixed(0)}px (max ${CONFIG.lockRadius}px)`;
-                    }
-                } else {
-                    framesWithoutPose = 0;
-                    landmarkHistory.push(pose.keypoints);
-                    if(landmarkHistory.length > CONFIG.historySize) landmarkHistory.shift();
+            if(chosen){
+                framesWithoutPose = 0;
+                landmarkHistory.push(chosen.keypoints);
+                if(landmarkHistory.length > CONFIG.historySize) landmarkHistory.shift();
+                const smoothed = smoothLandmarks(landmarkHistory);
+                drawSkeleton(smoothed);
 
-                    const smoothed = smoothLandmarks(landmarkHistory);
-                    drawSkeleton(smoothed);
-
-                    if(!sessionActive) checkMountainStart(smoothed);
-                    else               checkStage(smoothed);
-                }
+                if(!sessionActive) checkMountainStart(smoothed);
+                else               checkStage(smoothed);
             } else {
                 framesWithoutPose++;
                 if(framesWithoutPose > CONFIG.poseLostThreshold && sessionActive) endSession();
@@ -338,8 +417,6 @@
             debugText += `Mountain: ${detected}`;
 
             if(detected){
-                // Lock onto this person's position
-                lockedCenter = getBodyCenter(keypoints);
                 sessionActive = true;
                 cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
                 updateStatus('SESSION ACTIVE', 'active');
@@ -376,21 +453,19 @@
             if(!sh||!hip||!wr||!kn||!ank||!oAnk) return false;
             if(sh.score<0.3||hip.score<0.3||wr.score<0.3||kn.score<0.3) return false;
             if(ank.score<0.3||oAnk.score<0.3) return false;
-            // Angle between torso (hip->shoulder) and upper leg (hip->knee)
             const torsoVec  = {x: sh.x - hip.x,  y: sh.y - hip.y};
             const legVec    = {x: kn.x - hip.x,  y: kn.y - hip.y};
             const dot       = torsoVec.x*legVec.x + torsoVec.y*legVec.y;
             const magTorso  = Math.hypot(torsoVec.x, torsoVec.y);
             const magLeg    = Math.hypot(legVec.x,   legVec.y);
             const foldAngle = Math.acos(Math.max(-1, Math.min(1, dot / (magTorso * magLeg)))) * 180 / Math.PI;
-            // Both ankles close to wrist X (hands reaching down to feet)
             const ankleNearWrist = Math.abs(ank.x - wr.x) < 80 && Math.abs(oAnk.x - wr.x) < 80;
             return foldAngle < 100 && ankleNearWrist;
         }
         function detectLunge(kneeAng, hip, kn, ank, sh, oAnk){
             if(!hip||!kn||!ank||!sh||!oAnk) return false;
             if(hip.score<0.3||kn.score<0.3||ank.score<0.3||sh.score<0.3||oAnk.score<0.3) return false;
-            // One ankle significantly further back than the other (staggered feet)
+            // One ankle must be clearly in front of the other — doesn't matter which
             const feetStaggered = Math.abs(ank.x - oAnk.x) > 80;
             return Math.abs(sh.y-hip.y)<200 && kneeAng>100 && feetStaggered;
         }
@@ -398,14 +473,17 @@
             if(!sh||!hip||!kn||!ank||!oppKn||!oppAnk) return false;
             if(sh.score<0.3||hip.score<0.3||kn.score<0.3||ank.score<0.3) return false;
             if(oppKn.score<0.3||oppAnk.score<0.3) return false;
+            // Both ankles at roughly the same X (feet together)
+            const anklesTogether = Math.abs(ank.x - oppAnk.x) < 80;
             return Math.abs(sh.y-hip.y)<100 && Math.abs(hip.y-kn.y)<100
                 && ank.y>kn.y-20 && oppAnk.y>oppKn.y-20
-                && knAng>140 && oppAng>140;
+                && knAng>140 && oppAng>140
+                && anklesTogether;
         }
         function detectLowPlank(sh, hip, kn, wr){
             if(!sh||!hip||!kn||!wr) return false;
             if(sh.score<0.3||hip.score<0.3||kn.score<0.3||wr.score<0.3) return false;
-            const waistAtWrist = (wr.y - hip.y) < 120 && (hip.y - wr.y) < 60; // lenient if butt is up
+            const waistAtWrist = (wr.y - hip.y) < 120 && (hip.y - wr.y) < 60;
             const kneesAtWrist = Math.abs(kn.y  - wr.y) < 80;
             return waistAtWrist && kneesAtWrist;
         }
@@ -477,8 +555,7 @@
                     debugText += `Ankle-Wrist X diff (far):  ${Math.abs(oAnk.x-wr.x).toFixed(0)}px (< 80?): ${Math.abs(oAnk.x-wr.x) < 80}\n`;
                     debugText += `Forward Fold: ${detected}`;
                     break;
-                case "Lunge Left":
-                case "Lunge Right":
+                case "Lunge":
                     detected = detectLunge(knAng, hip, kn, ank, sh, oAnk);
                     debugText += `Shoulder-Hip: ${Math.abs(sh.y-hip.y).toFixed(0)}px (<200?)\n`;
                     debugText += `Back leg angle: ${knAng.toFixed(1)}°\n`;
@@ -490,6 +567,7 @@
                     debugText += `Back level: ${Math.abs(sh.y-hip.y)<100}\n`;
                     debugText += `Body straight: ${Math.abs(hip.y-kn.y)<100}\n`;
                     debugText += `Leg angles: ${knAng.toFixed(0)}°, ${oppAng.toFixed(0)}°\n`;
+                    debugText += `Ankles together: ${Math.abs(ank.x-oAnk.x).toFixed(0)}px (< 80?): ${Math.abs(ank.x-oAnk.x)<80}\n`;
                     debugText += `Plank: ${detected}`;
                     break;
                 case "Low Plank":
@@ -513,10 +591,6 @@
                     break;
             }
 
-            // Update locked center gradually as person moves through poses
-            const currentCenter = getBodyCenter(keypoints);
-            if(currentCenter) lockedCenter = currentCenter;
-
             document.getElementById('holdIndicator').classList.add('hidden');
 
             if(detected){
@@ -524,6 +598,16 @@
                 if(stageIndex >= STAGES.length){ counter++; stageIndex = 0; }
                 cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
                 updateUI();
+            } else if(STAGES[stageIndex] === "Lunge"){
+                // Only exception: if person skips Lunge and goes straight to Plank, allow it
+                const plankDetected = detectPlank(sh, hip, kn, ank, oKn, oAnk, knAng, oppAng);
+                if(plankDetected){
+                    stageIndex++; // skip Lunge
+                    stageIndex++; // advance to Plank
+                    if(stageIndex >= STAGES.length){ counter++; stageIndex = 0; }
+                    cooldownUntil = performance.now() + CONFIG.stageCooldownMs;
+                    updateUI();
+                }
             }
         }
 
@@ -541,8 +625,8 @@
             if(sessionActive){
                 updateStatus('SESSION ACTIVE', 'active');
                 controls.innerHTML = `
+                    <button class="btn-rules"  onclick="openRules()">📋 Rules</button>
                     <button class="btn-reset"  onclick="reset()">🔄 Reset</button>
-                    <button class="btn-relock" onclick="relockPerson()">📍 Re-lock Person</button>
                     <button class="btn-end"    onclick="endSession()">⏹️ End Session</button>
                 `;
                 stats.classList.remove('hidden');
@@ -565,6 +649,9 @@
                 `;
             } else {
                 updateStatus('STAND IN MOUNTAIN POSE TO START', 'waiting');
+                controls.innerHTML = `
+                    <button class="btn-rules" onclick="openRules()">📋 Rules</button>
+                `;
                 stats.classList.add('hidden');
             }
         }
@@ -576,21 +663,14 @@
 
         function endSession(){
             sessionActive = false; stageIndex = 0; cooldownUntil = 0;
-            lockedCenter = null;
             updateUI();
         }
 
-        function relockPerson(){
-            // Find the latest smoothed keypoints from history and re-lock center
-            if(landmarkHistory.length > 0){
-                const smoothed = smoothLandmarks(landmarkHistory);
-                const center   = getBodyCenter(smoothed);
-                if(center){
-                    lockedCenter = center;
-                    updateStatus('RE-LOCKED TO CURRENT POSITION', 'active');
-                    setTimeout(() => updateStatus('SESSION ACTIVE', 'active'), 1500);
-                }
-            }
+        function openRules(){
+            document.getElementById('rulesModal').classList.add('open');
+        }
+        function closeRules(){
+            document.getElementById('rulesModal').classList.remove('open');
         }
 
         init();
